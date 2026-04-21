@@ -8,11 +8,20 @@ turns, and fires a mock lead-capture tool only after all three slots
 (name, email, platform) are filled, the email passes validation, and
 the user explicitly confirms.
 
+## Live
+
+- **Landing page:** [23f2004467-lgtm.github.io/autostream-agent/design/landing/Landing%20Page.html](https://23f2004467-lgtm.github.io/autostream-agent/design/landing/Landing%20Page.html)
+- **Portfolio hub** (all 6 artifacts): [23f2004467-lgtm.github.io/autostream-agent/design/](https://23f2004467-lgtm.github.io/autostream-agent/design/)
+- **Chat with the agent:** [autostream-agent-yor2zpfuuypeitjohgtmml.streamlit.app](https://autostream-agent-yor2zpfuuypeitjohgtmml.streamlit.app/)
+
+The landing page's "Start free →" and "Chat with the agent" CTAs
+both open the live Streamlit agent.
+
 ## Design portfolio
 
 Full design system + six polished artifacts are in [`design/`](design/) —
-open [`design/index.html`](design/index.html) locally (or enable GitHub
-Pages) to browse the portfolio hub:
+open [`design/index.html`](design/index.html) locally or via the
+Portfolio hub URL above to browse:
 
 - **Landing page** — bold display type, orange accent, creator-energy
 - **Chat UI** — custom web widget + WhatsApp mobile mockup, every phase on a pannable canvas
