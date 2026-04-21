@@ -198,7 +198,11 @@ h1, [data-testid="stHeading"] h1 {
 
 
 def _inject_theme() -> None:
-    st.markdown(_THEME_CSS, unsafe_allow_html=True)
+    # st.html bypasses markdown parsing — critical here because our CSS
+    # contains [data-testid="..."] selectors that st.markdown would
+    # otherwise interpret as markdown reference-style links and render
+    # as visible text.
+    st.html(_THEME_CSS)
 
 
 def _init_session() -> None:
@@ -238,10 +242,7 @@ def main() -> None:
     _inject_theme()
     _init_session()
 
-    st.markdown(
-        '<div class="kicker">AutoStream · Agent</div>',
-        unsafe_allow_html=True,
-    )
+    st.html('<div class="kicker">AutoStream · Agent</div>')
     st.title("Ship videos. Not edits.")
     st.caption(
         "Ask about plans, features, pricing, or sign up. "
