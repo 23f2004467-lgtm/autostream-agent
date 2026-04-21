@@ -37,26 +37,43 @@ EMPTY_SLOTS: dict[str, str | None] = {"name": None, "email": None, "platform": N
 # Regexes are deterministic, so slot fills never silently fail for these
 # two fields. (Names still rely on the LLM.)
 _EMAIL_PAT = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
-_KNOWN_PLATFORMS = {
-    "youtube": "YouTube",
-    "yt": "YouTube",
-    "instagram": "Instagram",
-    "insta": "Instagram",
-    "ig": "Instagram",
-    "tiktok": "TikTok",
-    "tik tok": "TikTok",
-    "twitch": "Twitch",
-    "twitter": "X (Twitter)",
-    "x.com": "X (Twitter)",
-    "kick": "Kick",
-    "facebook": "Facebook",
-    "fb": "Facebook",
-    "linkedin": "LinkedIn",
-    "snapchat": "Snapchat",
-    "snap": "Snapchat",
-    "pinterest": "Pinterest",
-    "reddit": "Reddit",
-}
+# (regex-literal pattern, canonical value). Patterns are applied with
+# re.search over the lowercased message. Ordered from most specific to
+# most generic so e.g. "tiktok" doesn't accidentally match inside
+# something else. We deliberately DON'T regex for bare "x" because
+# it's too ambiguous (shows up inside "xy.com", "Xbox", etc.) —
+# "x.com", "X (Twitter)", and "twitter" cover the real cases.
+_PLATFORM_PATTERNS: list[tuple[re.Pattern, str]] = [
+    (re.compile(r"\byoutube\b"), "YouTube"),
+    (re.compile(r"\byt\b"), "YouTube"),
+    (re.compile(r"\binstagram\b"), "Instagram"),
+    (re.compile(r"\binsta\b"), "Instagram"),
+    (re.compile(r"\big\b"), "Instagram"),
+    (re.compile(r"\btiktok\b"), "TikTok"),
+    (re.compile(r"\btik\s*tok\b"), "TikTok"),
+    (re.compile(r"\btwitch\b"), "Twitch"),
+    (re.compile(r"\btwitter\b"), "X (Twitter)"),
+    (re.compile(r"(?<![a-z])x\.com\b"), "X (Twitter)"),
+    (re.compile(r"\bkick\b"), "Kick"),
+    (re.compile(r"\bfacebook\b"), "Facebook"),
+    (re.compile(r"\bfb\b"), "Facebook"),
+    (re.compile(r"\blinkedin\b"), "LinkedIn"),
+    (re.compile(r"\bsnapchat\b"), "Snapchat"),
+    (re.compile(r"\bsnap\b"), "Snapchat"),
+    (re.compile(r"\bpinterest\b"), "Pinterest"),
+    (re.compile(r"\breddit\b"), "Reddit"),
+]
+
+# Fallback for name extraction when the LLM returns None. The 8B model
+# occasionally ships malformed tool-calls on first-person sentences.
+# These patterns catch the most common phrasings.
+_NAME_PATTERNS = [
+    re.compile(
+        r"(?:call\s+me|i'?m\s+called|my\s+name\s+is|this\s+is|i\s+am|i'?m)\s*[,:\-]?\s*"
+        r"([A-Za-z][A-Za-z'\-]{1,24})",
+        re.IGNORECASE,
+    ),
+]
 
 # Deterministic fallbacks for quick-reply chips. The responder LLM
 # usually generates its own, but it occasionally returns an empty list
@@ -197,19 +214,37 @@ def extract_lead_node(state: AgentState) -> dict:
     )
     extracted = structured_call(LeadInfo, prompt, fallback=LeadInfo())
 
-    # Regex safety net for email and platform — the LLM sometimes
-    # returns empty due to parse errors even when the message clearly
-    # contains these fields.
+    # Regex safety net: the 8B LLM occasionally returns empty LeadInfo
+    # even when the message clearly contains these fields (malformed
+    # tool-calls). Regexes are deterministic — fill only if the LLM
+    # returned None so we never overwrite a good LLM extraction.
     if extracted.email is None:
         m = _EMAIL_PAT.search(msg)
         if m:
             extracted = extracted.model_copy(update={"email": m.group()})
     if extracted.platform is None:
         msg_lc = msg.lower()
-        for key, canonical in _KNOWN_PLATFORMS.items():
-            if re.search(rf"\b{key}\b", msg_lc):
+        for pattern, canonical in _PLATFORM_PATTERNS:
+            if pattern.search(msg_lc):
                 extracted = extracted.model_copy(update={"platform": canonical})
                 break
+    if extracted.name is None:
+        for pattern in _NAME_PATTERNS:
+            m = pattern.search(msg)
+            if not m:
+                continue
+            candidate = m.group(1).strip(" ,.!")
+            # Skip obvious non-names (sentence fillers).
+            if candidate.lower() in {
+                "a", "an", "the", "on", "at", "for", "with", "just",
+                "going", "planning", "trying", "sure", "ok",
+            }:
+                continue
+            # Normalize ALL-CAPS names to Title case: "DHEERAJ" -> "Dheeraj".
+            if candidate.isupper() and len(candidate) > 1:
+                candidate = candidate.title()
+            extracted = extracted.model_copy(update={"name": candidate})
+            break
 
     if intent == "correction":
         any_overwrite = False

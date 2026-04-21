@@ -197,6 +197,15 @@ h1, [data-testid="stHeading"] h1 {
 """
 
 
+def _escape_dollar(text: str) -> str:
+    """Escape `$` so Streamlit's markdown doesn't run MathJax on prices.
+
+    Otherwise "$29/month" between two dollars parses as inline LaTeX and
+    renders as an italic fraction — what the user saw on screenshot 1.
+    """
+    return text.replace("$", r"\$")
+
+
 def _inject_theme() -> None:
     # st.html bypasses markdown parsing — critical here because our CSS
     # contains [data-testid="..."] selectors that st.markdown would
@@ -249,10 +258,11 @@ def main() -> None:
         "Chips under each reply are shortcuts — typing any free text works the same way."
     )
 
-    # Render chat history
+    # Render chat history. Escape "$" so "$29/month" doesn't hit the
+    # Streamlit MathJax renderer and turn into a LaTeX fraction.
     for m in st.session_state.messages:
         with st.chat_message(m["role"]):
-            st.markdown(m["content"])
+            st.markdown(_escape_dollar(m["content"]))
 
     # Quick-reply chips under the last assistant message
     if (
@@ -303,7 +313,7 @@ def main() -> None:
                         f"moment. ({type(exc).__name__})"
                     )
                     st.session_state.quick_replies = []
-            st.markdown(reply)
+            st.markdown(_escape_dollar(reply))
             st.session_state.messages.append(
                 {"role": "assistant", "content": reply}
             )
