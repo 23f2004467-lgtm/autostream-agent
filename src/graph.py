@@ -50,6 +50,12 @@ class AgentState(TypedDict, total=False):
     retrieved_context: str
     quick_replies: list[str]
     pending_confirmation: bool
+    # Snapshot of `phase` before any node modifies it this turn.
+    # Lets capture_node distinguish "user responding to our confirmation
+    # prompt" (fire tool) from "extract_lead just entered confirming"
+    # (don't fire — respond with the prompt so the user has a chance to
+    # confirm or correct first).
+    phase_at_turn_start: Phase
 
 
 def _last_user_text(messages: list[BaseMessage]) -> str:
@@ -90,7 +96,7 @@ def classify_intent_node(state: AgentState) -> dict:
         IntentLabel, prompt, fallback=IntentLabel(intent="other")
     )
     logger.debug("classify_intent: %r -> %s", msg, result.intent)
-    return {"intent": result.intent}
+    return {"intent": result.intent, "phase_at_turn_start": phase}
 
 
 def extract_lead_node(state: AgentState) -> dict:
@@ -238,25 +244,37 @@ def after_classify(state: AgentState) -> str:
     intent = state.get("intent", "other")
     if phase in ("qualifying", "confirming"):
         return "extract_lead"
-    if intent == "high_intent":
+    # Greetings often carry a name ("Hi, I'm Alexandria...") so we extract
+    # on greeting too. Without this, later turns can't recall the name.
+    if intent in ("high_intent", "greeting"):
         return "extract_lead"
     if intent == "product_inquiry":
         return "retrieve"
     return "respond"
 
 
+def _should_capture(state: AgentState) -> bool:
+    """Capture is only valid when the user is answering our confirmation
+    prompt — i.e., the turn started in confirming AND we're still there.
+    If extract_lead JUST transitioned the phase to confirming, we respond
+    with the confirmation prompt first and wait for the next turn.
+    """
+    return (
+        state.get("phase_at_turn_start") == "confirming"
+        and state.get("phase") == "confirming"
+    )
+
+
 def after_extract(state: AgentState) -> str:
-    intent = state.get("intent", "other")
-    phase = state.get("phase", "browsing")
-    if intent == "product_inquiry":
+    if state.get("intent", "other") == "product_inquiry":
         return "retrieve"
-    if phase == "confirming":
+    if _should_capture(state):
         return "capture"
     return "respond"
 
 
 def after_retrieve(state: AgentState) -> str:
-    if state.get("phase") == "confirming":
+    if _should_capture(state):
         return "capture"
     return "respond"
 
@@ -303,6 +321,7 @@ def default_state(user_message: str) -> dict:
         "retrieved_context": "",
         "quick_replies": [],
         "pending_confirmation": False,
+        "phase_at_turn_start": "browsing",
     }
 
 

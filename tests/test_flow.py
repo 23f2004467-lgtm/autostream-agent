@@ -19,8 +19,8 @@ from src.prompts import INTENT_CLASSIFIER_PROMPT, LEAD_EXTRACTOR_PROMPT
 from src.schemas import IntentLabel, LeadInfo
 
 pytestmark = pytest.mark.skipif(
-    not os.getenv("GOOGLE_API_KEY"),
-    reason="GOOGLE_API_KEY not set — live LLM tests skipped.",
+    not os.getenv("GROQ_API_KEY"),
+    reason="GROQ_API_KEY not set — live LLM tests skipped.",
 )
 
 
