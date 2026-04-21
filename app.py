@@ -10,12 +10,24 @@
 
 from __future__ import annotations
 
+import os
 import uuid
 
 import streamlit as st
-from langchain_core.messages import HumanMessage
 
-from src.graph import default_state, graph
+# Streamlit Community Cloud stores secrets in st.secrets (TOML-backed),
+# not in os.environ. Promote any secrets to env vars BEFORE importing
+# anything that reads GROQ_API_KEY via os.getenv — our config module
+# loads env at import time. Local dev still works via .env.
+try:
+    for _k, _v in dict(st.secrets).items():
+        os.environ.setdefault(_k, str(_v))
+except Exception:
+    pass
+
+from langchain_core.messages import HumanMessage  # noqa: E402
+
+from src.graph import default_state, graph  # noqa: E402
 
 st.set_page_config(page_title="AutoStream Agent", page_icon=":speech_balloon:")
 
