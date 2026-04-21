@@ -46,6 +46,66 @@ _KNOWN_PLATFORMS = {
     "kick": "Kick",
 }
 
+# Deterministic fallbacks for quick-reply chips. The responder LLM
+# usually generates its own, but it occasionally returns an empty list
+# even outside the "asking for name/email" case — in which case the UI
+# looks barren. These defaults follow plan §2.4 and kick in only when
+# the LLM returned nothing AND the state is one where chips should show.
+_DEFAULT_REPLIES: dict[str, list[str]] = {
+    "browsing.greeting": [
+        "Tell me about pricing",
+        "Compare plans",
+        "I want to sign up",
+    ],
+    "browsing.product_inquiry": [
+        "Sign me up",
+        "Compare plans",
+        "What about refunds?",
+    ],
+    "browsing.objection": [
+        "Tell me more",
+        "Compare plans",
+        "I'll sign up anyway",
+    ],
+    "browsing.other": [
+        "Tell me about pricing",
+        "Compare plans",
+        "I want to sign up",
+    ],
+    "qualifying.platform": [
+        "YouTube",
+        "Instagram",
+        "TikTok",
+        "Twitch",
+    ],
+    "confirming": [
+        "Yes, submit",
+        "Fix something",
+    ],
+    "captured": [
+        "Ask another question",
+        "Talk to sales",
+        "I'm good, thanks",
+    ],
+}
+
+
+def _default_quick_replies(phase: Phase, intent: Intent, slots: dict) -> list[str]:
+    """Pick a sensible chip set when the LLM didn't supply one."""
+    if phase == "qualifying":
+        if slots.get("name") is None or slots.get("email") is None:
+            return []  # free-text-only for unique fields
+        if slots.get("platform") is None:
+            return _DEFAULT_REPLIES["qualifying.platform"]
+        return []
+    if phase == "confirming":
+        return _DEFAULT_REPLIES["confirming"]
+    if phase == "captured":
+        return _DEFAULT_REPLIES["captured"]
+    key = f"browsing.{intent}"
+    return _DEFAULT_REPLIES.get(key, _DEFAULT_REPLIES["browsing.other"])
+
+
 YES_RE = re.compile(
     r"\b(yes|yep|yup|yeah|sure|submit|confirm|go ahead|go|correct|"
     r"ready|sounds good|looks good|let'?s go)\b",
@@ -254,6 +314,17 @@ def respond_node(state: AgentState) -> dict:
     if phase == "qualifying":
         if slots.get("name") is None or slots.get("email") is None:
             quick_replies = []
+
+    # Fallback: if the LLM produced nothing and the state is one where
+    # chips should show, substitute a deterministic default per §2.4.
+    if not quick_replies:
+        default = _default_quick_replies(phase, intent, slots)
+        # Respect the name/email free-text-only rule above.
+        if default and not (
+            phase == "qualifying"
+            and (slots.get("name") is None or slots.get("email") is None)
+        ):
+            quick_replies = default
 
     updates: dict = {
         "messages": [AIMessage(content=reply.reply_text)],

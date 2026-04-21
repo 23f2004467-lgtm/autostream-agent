@@ -39,11 +39,11 @@ from src.config import LLM_MODEL
 
 logger = logging.getLogger(__name__)
 
-# Groq's free tier on Llama 3.3 70B is 30 req/min. We throttle to
-# ~20 req/min (3s/call) to stay safely below the burst ceiling when
-# the graph fans out multiple LLM calls per turn. Override via env var
-# (set to "0" to disable on paid tiers).
-_RATE_LIMIT_SEC = float(os.getenv("LLM_MIN_INTERVAL", "3.0"))
+# Interactive default of 1s/call — snappy for a demo session where a
+# human types every ~10s. Tests set LLM_MIN_INTERVAL=3.0 via conftest
+# because 14 back-to-back cases flirt with Groq's 30 RPM ceiling.
+# Override via env var (set to "0" on paid tiers).
+_RATE_LIMIT_SEC = float(os.getenv("LLM_MIN_INTERVAL", "1.0"))
 _last_call_ts = 0.0
 _rate_lock = threading.Lock()
 _MAX_429_RETRIES = 4

@@ -71,7 +71,8 @@ def main() -> None:
     st.title("AutoStream Agent")
     st.caption(
         "Ask about plans, features, pricing, or sign up. "
-        "Quick-reply buttons are shortcuts — typing works identically."
+        ":grey_question: **Tip:** the chips under each reply are shortcuts. "
+        "You can always type anything — the agent handles free text the same way."
     )
 
     # Render chat history
@@ -96,10 +97,14 @@ def main() -> None:
                     on_click=_queue_input,
                     args=(label,),
                 )
+        st.caption(
+            "↑ Shortcuts. Skip the chips and type your own answer anytime."
+        )
 
     # Free-text input — always available
     if typed := st.chat_input(
-        "Type a message…", disabled=st.session_state.processing
+        "Type anything — or tap a suggestion above",
+        disabled=st.session_state.processing,
     ):
         _queue_input(typed)
 
