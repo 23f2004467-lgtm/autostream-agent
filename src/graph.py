@@ -39,11 +39,23 @@ EMPTY_SLOTS: dict[str, str | None] = {"name": None, "email": None, "platform": N
 _EMAIL_PAT = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
 _KNOWN_PLATFORMS = {
     "youtube": "YouTube",
+    "yt": "YouTube",
     "instagram": "Instagram",
+    "insta": "Instagram",
+    "ig": "Instagram",
     "tiktok": "TikTok",
+    "tik tok": "TikTok",
     "twitch": "Twitch",
-    "twitter": "Twitter",
+    "twitter": "X (Twitter)",
+    "x.com": "X (Twitter)",
     "kick": "Kick",
+    "facebook": "Facebook",
+    "fb": "Facebook",
+    "linkedin": "LinkedIn",
+    "snapchat": "Snapchat",
+    "snap": "Snapchat",
+    "pinterest": "Pinterest",
+    "reddit": "Reddit",
 }
 
 # Deterministic fallbacks for quick-reply chips. The responder LLM
