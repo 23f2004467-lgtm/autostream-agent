@@ -155,9 +155,11 @@ def capture_node(state: AgentState) -> dict:
     slots = _slots_with_defaults(state)
     msg = _last_user_text(state.get("messages", []))
 
-    # Correction takes user back to qualifying (extract_lead already applied
-    # any new value provided).
-    if intent == "correction" or (intent == "other" and FIX_RE.search(msg)):
+    # "no, fix this" without an explicit value → drop back to qualifying
+    # so respond can ask what they want to fix. Correction-with-value is
+    # already handled by extract_lead (it overwrites and leaves phase
+    # in confirming so respond re-confirms with the new values).
+    if intent == "other" and FIX_RE.search(msg):
         return {"phase": "qualifying"}
 
     confirms = intent == "high_intent" or (
@@ -168,7 +170,7 @@ def capture_node(state: AgentState) -> dict:
         mock_lead_capture(slots["name"], slots["email"], slots["platform"])
         return {"phase": "captured"}
 
-    # Ambiguous — stay in confirming, respond will re-prompt.
+    # Ambiguous or product question mid-confirm — stay, respond re-prompts.
     return {}
 
 
