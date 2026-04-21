@@ -31,6 +31,21 @@ logger = logging.getLogger(__name__)
 
 EMPTY_SLOTS: dict[str, str | None] = {"name": None, "email": None, "platform": None}
 
+# Regex augmentation runs AFTER the LLM extractor as a safety net: Llama 8B
+# occasionally returns malformed tool calls that parse to empty LeadInfo
+# even when the message clearly contains an email or platform name.
+# Regexes are deterministic, so slot fills never silently fail for these
+# two fields. (Names still rely on the LLM.)
+_EMAIL_PAT = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
+_KNOWN_PLATFORMS = {
+    "youtube": "YouTube",
+    "instagram": "Instagram",
+    "tiktok": "TikTok",
+    "twitch": "Twitch",
+    "twitter": "Twitter",
+    "kick": "Kick",
+}
+
 YES_RE = re.compile(
     r"\b(yes|yep|yup|yeah|sure|submit|confirm|go ahead|go|correct|"
     r"ready|sounds good|looks good|let'?s go)\b",
@@ -109,6 +124,20 @@ def extract_lead_node(state: AgentState) -> dict:
         message=msg, current_slots=slots
     )
     extracted = structured_call(LeadInfo, prompt, fallback=LeadInfo())
+
+    # Regex safety net for email and platform — the LLM sometimes
+    # returns empty due to parse errors even when the message clearly
+    # contains these fields.
+    if extracted.email is None:
+        m = _EMAIL_PAT.search(msg)
+        if m:
+            extracted = extracted.model_copy(update={"email": m.group()})
+    if extracted.platform is None:
+        msg_lc = msg.lower()
+        for key, canonical in _KNOWN_PLATFORMS.items():
+            if re.search(rf"\b{key}\b", msg_lc):
+                extracted = extracted.model_copy(update={"platform": canonical})
+                break
 
     if intent == "correction":
         any_overwrite = False
