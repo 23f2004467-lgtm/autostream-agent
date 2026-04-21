@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AutoStream — Interactive Agent Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<style>
+  html, body { height: 100%; }
+  body { display: flex; flex-direction: column; overflow: hidden; }
+  #app { flex: 1; min-height: 0; }
+  .blink { animation: blink 1s steps(2) infinite; }
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+  .typing-dot {
+    animation: typing 1.2s infinite;
+    display: inline-block; width: 6px; height: 6px;
+    border-radius: 3px; background: var(--accent); margin-right: 3px;
+  }
+  .typing-dot:nth-child(2) { animation-delay: .2s; }
+  .typing-dot:nth-child(3) { animation-delay: .4s; }
+  @keyframes typing {
+    0%, 60%, 100% { opacity: .3; transform: translateY(0); }
+    30% { opacity: 1; transform: translateY(-3px); }
+  }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--fg-muted); }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel">
+// =========================================================================
+// AutoStream — Live Agent Prototype
+// Two modes:
+//   (1) Scripted — step through the canonical 4-phase sample conversation
+//   (2) Live — real LLM replies via window.claude.complete, running a
+//       phase-state machine locally in the browser
+// =========================================================================
+
+const KB = [
+  { id: 'basic',   title: 'Basic Plan',   body: 'Basic Plan — $29/month. Includes 10 videos per month, up to 720p export, auto-cut / captions / auto-crop, and email support during business hours. Good for hobbyist creators.' },
+  { id: 'pro',     title: 'Pro Plan',     body: 'Pro Plan — $79/month. Includes unlimited video edits, 4K export, AI-generated captions, 24/7 customer support, priority render queue, and brand kits. Built for full-time creators.' },
+  { id: 'features',title: 'Features',     body: 'AutoStream features: automatic cut (strips silence, umms, dead air), AI captions (platform-tuned), auto-crop to every aspect ratio (16:9, 9:16, 1:1), audio leveling with music ducking, auto chapters and hooks, up to 4K export on Pro.' },
+  { id: 'refund',  title: 'Refund Policy',body: 'Refund policy: full refund available within 7 days of purchase. No refunds after 7 days. Contact support@autostream.app to request.' },
+  { id: 'platforms',title: 'Platforms',   body: 'AutoStream supports YouTube (long-form + Shorts), TikTok, Instagram (Reels, Posts, Stories), and Twitch (clip extraction).' },
+];
+
+// ── Scripted conversation ────────────────────────────────────────────────
+const SCRIPT = [
+  { role: 'agent', text: "Hey! I'm AutoStream's assistant. Want to hear about our plans, features, or pricing?",
+    chips: ["Tell me about pricing", "Compare plans", "I want to sign up"],
+    phase: 'browsing', intent: 'greeting', slots: {}, node: 'respond' },
+  { role: 'user', text: "What does the Pro plan include?" },
+  { role: 'agent', text: "The Pro Plan is $79/month — unlimited edits, 4K export, AI captions, and 24/7 support. Built for full-time creators.",
+    chips: ["Sign me up", "Compare plans", "What about refunds?"],
+    phase: 'browsing', intent: 'product_inquiry', slots: {}, node: 'retrieve → respond' },
+  { role: 'user', text: "Sounds great — I want to sign up for my YouTube channel." },
+  { role: 'agent', text: "Love that! I just need a few details. What's your name?",
+    chips: [],
+    phase: 'qualifying', intent: 'high_intent', slots: { platform: 'YouTube' }, node: 'extract_lead → respond' },
+  { role: 'user', text: "Jainam" },
+  { role: 'agent', text: "Nice to meet you, Jainam. What's the best email to reach you?",
+    chips: [],
+    phase: 'qualifying', slots: { name: 'Jainam', platform: 'YouTube' }, intent: 'high_intent', node: 'extract_lead → respond' },
+  { role: 'user', text: "jainam@distill.fyi" },
+  { role: 'agent', text: "Quick recap: Jainam · jainam@distill.fyi · YouTube. Ready to submit?",
+    chips: ["Yes, submit", "Fix something"],
+    phase: 'confirming', slots: { name: 'Jainam', email: 'jainam@distill.fyi', platform: 'YouTube' }, intent: 'high_intent', node: 'extract_lead (email ✓) → respond' },
+  { role: 'user', text: "Yes, submit" },
+  { role: 'agent', text: "All set, Jainam — captured! Someone from AutoStream will reach out within 24 hours. Anything else you'd like to know?",
+    chips: ["Ask another question", "How does auto-cut work?", "I'm good, thanks"],
+    phase: 'browsing', slots: { name: 'Jainam', email: 'jainam@distill.fyi', platform: 'YouTube' }, intent: 'high_intent', node: 'capture ⟶ tool_call ✓ ⟶ respond', captured: true },
+];
+
+// ── Live-mode state machine ──────────────────────────────────────────────
+// Mirrors the Python backend's logic in JS. LLM only drives the respond
+// step; intent/phase/extraction are routed in code.
+
+const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+
+function classifyIntent(text) {
+  const t = text.toLowerCase();
+  if (/sign up|sign me up|start|get started|join|subscribe|ready/.test(t)) return 'high_intent';
+  if (/too expensive|can't afford|cheaper|cancel|not sure|maybe later|refund/.test(t)) return 'objection';
+  if (/price|plan|feature|4k|caption|cost|how much|what does|include|support|compare/.test(t)) return 'product_inquiry';
+  if (/^(hi|hello|hey|yo|sup|good (morning|evening|afternoon))\b/.test(t)) return 'greeting';
+  if (/yes|no|yep|nope|sure|ok|okay|submit|confirm/.test(t)) return 'confirmation';
+  return 'other';
+}
+
+function extractSlots(text, existing, phase) {
+  const out = { ...existing };
+  // Email: always scan
+  const em = text.match(EMAIL_RE);
+  if (em && !out.email) out.email = em[0];
+  // Platform: scan mentions
+  const tl = text.toLowerCase();
+  if (!out.platform) {
+    if (/\byoutube\b|\byt\b/.test(tl)) out.platform = 'YouTube';
+    else if (/\btiktok\b/.test(tl)) out.platform = 'TikTok';
+    else if (/\binstagram\b|\big\b|\breel/.test(tl)) out.platform = 'Instagram';
+    else if (/\btwitch\b/.test(tl)) out.platform = 'Twitch';
+  }
+  // Name: only when we've asked (phase is qualifying AND name not yet set).
+  // Accept a short single-word or two-word reply that isn't a stopword.
+  if (phase === 'qualifying' && !out.name) {
+    const trimmed = text.trim();
+    const stopwords = /^(yes|no|yep|nope|sure|ok|okay|thanks|thank you|hi|hello|hey|sign up|start|got it|cool|nice|nope)$/i;
+    if (trimmed.length > 0 && trimmed.length < 40 && !stopwords.test(trimmed) && !EMAIL_RE.test(trimmed)) {
+      // skip if it obviously mentions a platform keyword-only
+      if (!/^(youtube|tiktok|instagram|twitch)$/i.test(trimmed)) {
+        // simple heuristic: if contains a name-like token
+        const nameMatch = trimmed.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b/) || trimmed.match(/^([a-zA-Z]{2,20})\b/);
+        if (nameMatch) out.name = nameMatch[1];
+      }
+    }
+  }
+  return out;
+}
+
+function nextPhase(phase, slots, intent, userText) {
+  // confirmation logic
+  const consented = /^(yes|yep|sure|ok|okay|submit|confirm|go|yes,?\s*submit)$/i.test(userText.trim());
+  const rejected = /^(no|nope|fix|change|wait)/i.test(userText.trim());
+  if (phase === 'confirming' && consented) return 'captured';
+  if (phase === 'confirming' && rejected) return 'qualifying';
+  if (phase === 'captured') return 'browsing'; // drop back after a turn
+  // promote browsing → qualifying on high intent
+  if (phase === 'browsing' && intent === 'high_intent') return 'qualifying';
+  // promote qualifying → confirming when all slots valid
+  if (phase === 'qualifying' && slots.name && slots.email && EMAIL_RE.test(slots.email) && slots.platform) {
+    return 'confirming';
+  }
+  return phase;
+}
+
+function nextQuestion(slots) {
+  if (!slots.name) return 'name';
+  if (!slots.platform) return 'platform';
+  if (!slots.email || !EMAIL_RE.test(slots.email || '')) return 'email';
+  return null;
+}
+
+function retrieve(query) {
+  const q = query.toLowerCase();
+  const scored = KB.map(doc => {
+    const text = (doc.title + ' ' + doc.body).toLowerCase();
+    let score = 0;
+    for (const tok of q.split(/\W+/)) {
+      if (tok.length < 3) continue;
+      if (text.includes(tok)) score += 1;
+    }
+    return { doc, score };
+  }).filter(x => x.score > 0).sort((a,b) => b.score - a.score).slice(0, 3);
+  return scored.map(s => s.doc);
+}
+
+async function callLLM(systemPrompt, history, userText) {
+  const messages = [
+    { role: 'user', content: `${systemPrompt}\n\n---\n\nConversation so far:\n${history.map(m => `${m.role === 'user' ? 'User' : 'Agent'}: ${m.text}`).join('\n')}\n\nUser: ${userText}\n\nAgent (reply in 1-2 sentences, warm & conversational, no markdown):` }
+  ];
+  try {
+    const reply = await window.claude.complete({ messages });
+    return (reply || '').trim();
+  } catch (e) {
+    return "Sorry, I hit a connection issue — mind trying again?";
+  }
+}
+
+async function runAgent({ userText, state, history, addTrace }) {
+  // 1. classify intent
+  addTrace('classify_intent');
+  await sleep(250);
+  const intent = classifyIntent(userText);
+
+  // 2. extract slots
+  let slots = { ...state.slots };
+  if (state.phase === 'qualifying' || state.phase === 'confirming' || intent === 'high_intent') {
+    addTrace('extract_lead');
+    await sleep(300);
+    slots = extractSlots(userText, slots, state.phase);
+  }
+
+  // 3. phase transition
+  const phaseAfter = nextPhase(state.phase, slots, intent, userText);
+
+  // 4. capture tool (confirming + consent)
+  let captured = state.captured;
+  if (state.phase === 'confirming' && phaseAfter === 'captured') {
+    addTrace('capture · mock_lead_capture() 🔥');
+    await sleep(500);
+    captured = true;
+  }
+
+  // 5. retrieve + respond
+  let reply = '';
+  let chips = [];
+
+  if (state.phase === 'captured' || phaseAfter === 'captured') {
+    // Capture response
+    addTrace('respond · post-capture');
+    await sleep(250);
+    reply = `All set, ${slots.name || 'friend'} — captured! Someone from AutoStream will reach out within 24 hours. Anything else you'd like to know?`;
+    chips = ["Ask another question", "How does auto-cut work?", "I'm good, thanks"];
+  } else if (phaseAfter === 'qualifying') {
+    // Slot collection
+    const ask = nextQuestion(slots);
+    addTrace('respond · slot=' + (ask || 'all filled'));
+    await sleep(250);
+    if (ask === 'name') reply = "Love that! I just need a few details. What's your name?";
+    else if (ask === 'platform') reply = `Nice${slots.name ? `, ${slots.name}` : ''}! Which platform do you create for — YouTube, TikTok, Instagram, or Twitch?`;
+    else if (ask === 'email') reply = "Great. What's the best email to reach you?";
+    else reply = "Got it! Let me confirm those details…";
+    if (ask === 'platform') chips = ["YouTube", "TikTok", "Instagram", "Twitch"];
+  } else if (phaseAfter === 'confirming') {
+    addTrace('respond · recap');
+    await sleep(250);
+    reply = `Quick recap: ${slots.name} · ${slots.email} · ${slots.platform}. Ready to submit?`;
+    chips = ["Yes, submit", "Fix something"];
+  } else if (intent === 'product_inquiry') {
+    addTrace('retrieve · FAISS');
+    await sleep(350);
+    const docs = retrieve(userText);
+    addTrace('respond · LLM + ' + docs.length + ' docs');
+    const contextStr = docs.map(d => `## ${d.title}\n${d.body}`).join('\n\n');
+    const sys = `You are AutoStream's sales assistant. You only answer based on the CONTEXT provided. Never invent prices, features, or policies. If the context does not contain the answer, say so and offer to connect them with a human. Always warm, concise, no markdown.\n\nCONTEXT:\n${contextStr}`;
+    reply = await callLLM(sys, history, userText);
+    chips = docs.some(d => d.id === 'pro') || docs.some(d => d.id === 'basic')
+      ? ["Sign me up", "Compare plans", "What about refunds?"]
+      : ["Tell me about pricing", "I want to sign up", "Show me features"];
+  } else if (intent === 'objection') {
+    addTrace('respond · objection-handling');
+    const sys = `You are AutoStream's sales assistant. The user has raised an objection (price, timing, trust). Acknowledge briefly, offer one concrete reassurance (7-day refund, cancel anytime, free trial available). Warm, 1-2 sentences, no markdown.`;
+    reply = await callLLM(sys, history, userText);
+    chips = ["7-day refund policy", "Start with Basic", "Talk to sales"];
+  } else {
+    addTrace('respond · general');
+    const sys = `You are AutoStream's sales assistant for an AI video-editing tool. Warm, conversational, steer toward signup if they seem interested. 1-2 sentences, no markdown.`;
+    reply = await callLLM(sys, history, userText);
+    chips = ["Tell me about pricing", "Compare plans", "I want to sign up"];
+  }
+
+  return { reply, chips, intent, slots, phase: phaseAfter, captured };
+}
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+// ── UI components ────────────────────────────────────────────────────────
+
+function Logo({ size = 26 }) {
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: 5,
+      background: 'var(--accent)',
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      boxShadow: '0 4px 14px rgba(255,90,31,.35)',
+      flexShrink: 0,
+    }}>
+      <svg width={size*0.6} height={size*0.6} viewBox="0 0 20 20" fill="none">
+        <rect x="3" y="6" width="10" height="8" rx="1" fill="#0A0A0A"/>
+        <path d="M13 9 L17 6 V14 L13 11 Z" fill="#0A0A0A"/>
+      </svg>
+    </div>
+  );
+}
+
+function Bubble({ role, text, typing }) {
+  const isUser = role === 'user';
+  return (
+    <div style={{
+      display: 'flex', gap: 10,
+      alignSelf: isUser ? 'flex-end' : 'flex-start',
+      maxWidth: '86%',
+      flexDirection: isUser ? 'row-reverse' : 'row',
+      alignItems: 'flex-start',
+    }}>
+      {!isUser && <Logo size={26}/>}
+      <div style={{
+        padding: '11px 15px',
+        borderRadius: isUser ? '14px 4px 14px 14px' : '4px 14px 14px 14px',
+        background: isUser ? 'var(--accent)' : 'var(--bg-elev)',
+        color: isUser ? 'var(--bg)' : 'var(--fg)',
+        border: isUser ? 'none' : '1px solid var(--line)',
+        fontSize: 14, lineHeight: 1.5,
+        fontWeight: isUser ? 500 : 400,
+        whiteSpace: 'pre-wrap',
+      }}>
+        {typing ? (
+          <span>
+            <span className="typing-dot"/><span className="typing-dot"/><span className="typing-dot"/>
+          </span>
+        ) : text}
+      </div>
+    </div>
+  );
+}
+
+function Chips({ items, onPick, disabled }) {
+  if (!items || items.length === 0) return null;
+  return (
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingLeft: 36 }}>
+      {items.map((c, i) => (
+        <button key={i} disabled={disabled} onClick={() => onPick(c)}
+          style={{
+            background: 'transparent',
+            border: '1px solid var(--accent)',
+            color: 'var(--accent)',
+            padding: '6px 12px', borderRadius: 999,
+            fontFamily: 'var(--font-mono)', fontSize: 11,
+            letterSpacing: '0.02em',
+            cursor: disabled ? 'not-allowed' : 'pointer',
+            opacity: disabled ? .4 : 1,
+            transition: 'all .15s',
+          }}
+          onMouseEnter={e => !disabled && (e.currentTarget.style.background = 'var(--accent)', e.currentTarget.style.color = 'var(--bg)')}
+          onMouseLeave={e => !disabled && (e.currentTarget.style.background = 'transparent', e.currentTarget.style.color = 'var(--accent)')}
+        >{c}</button>
+      ))}
+    </div>
+  );
+}
+
+function Pill({ active, children, onClick, small }) {
+  return (
+    <button onClick={onClick} style={{
+      padding: small ? '6px 10px' : '8px 14px',
+      borderRadius: 999,
+      border: active ? '1px solid var(--accent)' : '1px solid var(--line)',
+      background: active ? 'var(--accent)' : 'transparent',
+      color: active ? 'var(--bg)' : 'var(--fg-dim)',
+      fontFamily: 'var(--font-mono)', fontSize: small ? 10 : 11,
+      letterSpacing: '0.08em', textTransform: 'uppercase',
+      cursor: 'pointer', transition: 'all .15s',
+    }}>{children}</button>
+  );
+}
+
+function PhasePills({ phase }) {
+  const phases = ['browsing','qualifying','confirming','captured'];
+  return (
+    <div style={{ display: 'flex', gap: 4 }}>
+      {phases.map((p, i) => (
+        <div key={p} style={{
+          padding: '6px 10px',
+          border: '1px solid ' + (phase === p ? 'var(--accent)' : 'var(--line)'),
+          background: phase === p ? 'rgba(255,90,31,.12)' : 'transparent',
+          color: phase === p ? 'var(--accent)' : 'var(--fg-muted)',
+          fontFamily: 'var(--font-mono)', fontSize: 10,
+          letterSpacing: '0.08em', textTransform: 'uppercase',
+          flex: 1, textAlign: 'center',
+          transition: 'all .3s',
+        }}>{String(i+1).padStart(2,'0')} {p}</div>
+      ))}
+    </div>
+  );
+}
+
+function SlotRow({ k, v, valid }) {
+  return (
+    <div style={{
+      display: 'grid', gridTemplateColumns: '80px 1fr 14px', gap: 10, alignItems: 'center',
+      padding: '8px 12px', background: 'var(--bg-elev)',
+      border: '1px solid var(--line)',
+    }}>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-dim)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{k}</span>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: v ? 'var(--fg)' : 'var(--fg-muted)' }}>{v || '—'}</span>
+      <span style={{ color: v && valid ? 'var(--accent)' : 'var(--fg-muted)', fontSize: 14, textAlign: 'right' }}>{v && valid ? '●' : '○'}</span>
+    </div>
+  );
+}
+
+// ── Main App ─────────────────────────────────────────────────────────────
+
+function App() {
+  const [mode, setMode] = React.useState(() => localStorage.getItem('asprot:mode') || 'scripted');
+  const [scriptIdx, setScriptIdx] = React.useState(0);
+  const [messages, setMessages] = React.useState([]);
+  const [typing, setTyping] = React.useState(false);
+  const [chips, setChips] = React.useState([]);
+  const [input, setInput] = React.useState('');
+  const [state, setState] = React.useState({ phase: 'browsing', intent: null, slots: {}, captured: false });
+  const [node, setNode] = React.useState('idle');
+  const [trace, setTrace] = React.useState([]);
+  const scrollRef = React.useRef(null);
+
+  React.useEffect(() => {
+    localStorage.setItem('asprot:mode', mode);
+    reset();
+  }, [mode]);
+
+  React.useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [messages, typing]);
+
+  function reset() {
+    setMessages([]);
+    setChips([]);
+    setTyping(false);
+    setScriptIdx(0);
+    setState({ phase: 'browsing', intent: null, slots: {}, captured: false });
+    setNode('idle');
+    setTrace([]);
+    if (mode === 'scripted') {
+      // seed with first agent message
+      setTimeout(() => {
+        const m = SCRIPT[0];
+        setMessages([{ role: 'agent', text: m.text }]);
+        setChips(m.chips || []);
+        setState({ phase: m.phase, intent: m.intent, slots: m.slots, captured: !!m.captured });
+        setNode(m.node);
+        setTrace([m.node]);
+        setScriptIdx(1);
+      }, 50);
+    } else {
+      setTimeout(() => {
+        setMessages([{ role: 'agent', text: "Hey! I'm AutoStream's assistant. Ask me anything about plans, features, or pricing — or tell me you want to sign up." }]);
+        setChips(["Tell me about the Pro plan", "Compare plans", "I want to sign up"]);
+        setState({ phase: 'browsing', intent: 'greeting', slots: {}, captured: false });
+        setNode('respond');
+        setTrace(['respond']);
+      }, 50);
+    }
+  }
+
+  // Scripted advance: user sends the next scripted user message, then agent replies
+  async function advanceScripted(userText) {
+    if (scriptIdx >= SCRIPT.length) return;
+    const userMsg = SCRIPT[scriptIdx];
+    // If provided userText and we're expecting a user turn, allow custom (but we still match script)
+    setChips([]);
+    setMessages(m => [...m, { role: 'user', text: userText || userMsg.text }]);
+    setTyping(true);
+    setNode('classify_intent');
+    setTrace(t => [...t, 'classify_intent']);
+
+    const agentMsg = SCRIPT[scriptIdx + 1];
+    if (!agentMsg) {
+      setTyping(false);
+      setScriptIdx(scriptIdx + 1);
+      return;
+    }
+
+    // mimic node trace for this step
+    await sleep(400);
+    if (agentMsg.node) {
+      setNode(agentMsg.node);
+      // split on arrows for a richer trace
+      const parts = agentMsg.node.split(/\s*→\s*|\s*⟶\s*/);
+      for (const p of parts) {
+        setTrace(t => [...t, p]);
+        await sleep(250);
+      }
+    }
+
+    setTyping(false);
+    setMessages(m => [...m, { role: 'agent', text: agentMsg.text }]);
+    setChips(agentMsg.chips || []);
+    setState({
+      phase: agentMsg.phase || state.phase,
+      intent: agentMsg.intent || state.intent,
+      slots: agentMsg.slots || state.slots,
+      captured: !!agentMsg.captured || state.captured,
+    });
+    setScriptIdx(scriptIdx + 2);
+  }
+
+  async function sendLive(userText) {
+    setChips([]);
+    setMessages(m => [...m, { role: 'user', text: userText }]);
+    setTyping(true);
+    setTrace(t => [...t, '— turn —']);
+
+    const addTrace = (label) => {
+      setNode(label);
+      setTrace(t => [...t, label]);
+    };
+
+    try {
+      const result = await runAgent({
+        userText,
+        state,
+        history: messages,
+        addTrace,
+      });
+      setTyping(false);
+      setMessages(m => [...m, { role: 'agent', text: result.reply }]);
+      setChips(result.chips);
+      setState({
+        phase: result.phase,
+        intent: result.intent,
+        slots: result.slots,
+        captured: result.captured,
+      });
+      setNode('idle');
+    } catch (e) {
+      setTyping(false);
+      setMessages(m => [...m, { role: 'agent', text: "Something broke — mind retrying?" }]);
+      setNode('error');
+    }
+  }
+
+  function handleSend(text) {
+    const t = (text ?? input).trim();
+    if (!t) return;
+    setInput('');
+    if (mode === 'scripted') {
+      advanceScripted(t);
+    } else {
+      sendLive(t);
+    }
+  }
+
+  // Suggested next-scripted user input
+  const nextScriptedUser = mode === 'scripted' && scriptIdx < SCRIPT.length && SCRIPT[scriptIdx]?.role === 'user'
+    ? SCRIPT[scriptIdx].text
+    : null;
+
+  return (
+    <div style={{
+      height: '100%', width: '100%',
+      display: 'grid',
+      gridTemplateColumns: '1.2fr 1fr',
+      background: 'var(--bg)',
+    }}>
+      {/* LEFT — chat */}
+      <div style={{
+        display: 'flex', flexDirection: 'column',
+        borderRight: '1px solid var(--line)',
+        height: '100%', minHeight: 0,
+      }}>
+        {/* header */}
+        <div style={{
+          padding: '14px 24px',
+          borderBottom: '1px solid var(--line)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: 12, flexShrink: 0,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Logo size={32}/>
+            <div>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 17, letterSpacing: '-0.01em' }}>AutoStream Assistant</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-dim)', letterSpacing: '0.1em', display: 'flex', gap: 8, alignItems: 'center', marginTop: 2 }}>
+                <span style={{ width: 6, height: 6, borderRadius: 3, background: 'var(--accent)' }}/>
+                ONLINE · {mode === 'live' ? 'LIVE (LLM)' : 'SCRIPTED'}
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <Pill active={mode==='scripted'} onClick={()=>setMode('scripted')} small>Scripted</Pill>
+            <Pill active={mode==='live'} onClick={()=>setMode('live')} small>Live LLM</Pill>
+            <button onClick={reset} title="Reset" style={{
+              padding: '6px 10px', borderRadius: 4, border: '1px solid var(--line)',
+              background: 'transparent', color: 'var(--fg-dim)',
+              fontFamily: 'var(--font-mono)', fontSize: 10,
+              letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer',
+            }}>↺ Reset</button>
+          </div>
+        </div>
+
+        {/* transcript */}
+        <div ref={scrollRef} style={{
+          flex: 1, overflowY: 'auto', padding: '24px',
+          display: 'flex', flexDirection: 'column', gap: 10,
+          minHeight: 0,
+        }}>
+          {messages.map((m, i) => <Bubble key={i} role={m.role} text={m.text}/>)}
+          {typing && <Bubble role="agent" typing/>}
+          {!typing && <Chips items={chips} disabled={typing} onPick={handleSend}/>}
+        </div>
+
+        {/* input */}
+        <div style={{
+          padding: '14px 24px 18px', borderTop: '1px solid var(--line)',
+          flexShrink: 0, background: 'var(--bg)',
+        }}>
+          {mode === 'scripted' && nextScriptedUser && (
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-muted)',
+              letterSpacing: '0.08em', marginBottom: 8, textTransform: 'uppercase',
+            }}>Next in script ↓ (or type anything)</div>
+          )}
+          <div style={{
+            display: 'flex', gap: 8,
+            background: 'var(--bg-elev)', border: '1px solid var(--line)',
+            borderRadius: 10, padding: 6,
+          }}>
+            <input
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSend()}
+              placeholder={
+                mode === 'scripted' && nextScriptedUser
+                  ? nextScriptedUser
+                  : mode === 'scripted'
+                    ? 'Script complete — reset to start over'
+                    : 'Type anything…'
+              }
+              disabled={mode === 'scripted' && scriptIdx >= SCRIPT.length}
+              style={{
+                flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                color: 'var(--fg)', fontSize: 14, padding: '8px 10px',
+                fontFamily: 'var(--font-body)',
+              }}
+            />
+            <button
+              onClick={() => {
+                if (mode === 'scripted' && !input.trim() && nextScriptedUser) {
+                  handleSend(nextScriptedUser);
+                } else handleSend();
+              }}
+              disabled={typing}
+              style={{
+                background: 'var(--accent)', color: 'var(--bg)', border: 'none',
+                padding: '0 18px', borderRadius: 6,
+                fontFamily: 'var(--font-mono)', fontSize: 11,
+                letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 600,
+                cursor: typing ? 'not-allowed' : 'pointer',
+                opacity: typing ? .5 : 1,
+              }}>
+              {mode === 'scripted' ? (nextScriptedUser ? 'Next →' : 'Done') : 'Send →'}
+            </button>
+          </div>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-muted)',
+            letterSpacing: '0.08em', marginTop: 10, display: 'flex', gap: 16,
+          }}>
+            <span>↵ SEND</span>
+            <span>↺ RESET</span>
+            <span style={{ marginLeft: 'auto' }}>AUTOSTREAM · AGENT v1.0</span>
+          </div>
+        </div>
+      </div>
+
+      {/* RIGHT — inspector */}
+      <div style={{
+        display: 'flex', flexDirection: 'column',
+        height: '100%', minHeight: 0,
+        background: '#0C0C0C',
+      }}>
+        <div style={{
+          padding: '14px 24px', borderBottom: '1px solid var(--line)',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          flexShrink: 0,
+        }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--accent)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>[ AGENT INSPECTOR ]</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-muted)', letterSpacing: '0.08em' }}>LANGGRAPH · MIRROR</div>
+        </div>
+
+        <div style={{ flex: 1, overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 24, minHeight: 0 }}>
+          {/* phase */}
+          <div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-dim)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>PHASE</div>
+            <PhasePills phase={state.phase}/>
+          </div>
+
+          {/* intent */}
+          <div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-dim)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>LAST INTENT</div>
+            <div style={{
+              padding: '10px 14px', background: 'var(--bg-elev)',
+              border: '1px solid var(--line)',
+              fontFamily: 'var(--font-mono)', fontSize: 13,
+              color: state.intent ? 'var(--fg)' : 'var(--fg-muted)',
+            }}>{state.intent || '—'}</div>
+          </div>
+
+          {/* slots */}
+          <div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-dim)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>LEAD SLOTS</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <SlotRow k="name" v={state.slots.name} valid={!!state.slots.name}/>
+              <SlotRow k="email" v={state.slots.email} valid={state.slots.email && EMAIL_RE.test(state.slots.email)}/>
+              <SlotRow k="platform" v={state.slots.platform} valid={!!state.slots.platform}/>
+            </div>
+            {state.captured && (
+              <div style={{
+                marginTop: 10, padding: '10px 14px',
+                background: 'var(--accent)', color: 'var(--bg)',
+                fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.1em',
+                fontWeight: 600,
+              }}>✓ mock_lead_capture() FIRED</div>
+            )}
+          </div>
+
+          {/* current node */}
+          <div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-dim)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>EXECUTING</div>
+            <div style={{
+              padding: '12px 16px',
+              background: node === 'idle' ? 'var(--bg-elev)' : '#1a0d06',
+              border: '1px solid ' + (node === 'idle' ? 'var(--line)' : 'var(--accent)'),
+              color: node === 'idle' ? 'var(--fg-dim)' : 'var(--accent)',
+              fontFamily: 'var(--font-mono)', fontSize: 13, letterSpacing: '0.04em',
+            }}>{node}{node !== 'idle' && <span className="blink">▊</span>}</div>
+          </div>
+
+          {/* trace */}
+          <div style={{ flex: 1, minHeight: 0 }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-dim)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8, display: 'flex', justifyContent: 'space-between' }}>
+              <span>NODE TRACE</span>
+              <span style={{ color: 'var(--fg-muted)' }}>{trace.length} events</span>
+            </div>
+            <div style={{
+              background: 'var(--bg)', border: '1px solid var(--line)',
+              padding: 14, maxHeight: 260, overflowY: 'auto',
+              fontFamily: 'var(--font-mono)', fontSize: 11, lineHeight: 1.7,
+              display: 'flex', flexDirection: 'column', gap: 2,
+            }}>
+              {trace.length === 0 && <div style={{ color: 'var(--fg-muted)' }}># no events yet</div>}
+              {trace.map((t, i) => (
+                <div key={i} style={{
+                  color: t.startsWith('—') ? 'var(--fg-muted)' : t.includes('capture') ? 'var(--accent)' : 'var(--fg-dim)',
+                }}>
+                  <span style={{ color: 'var(--fg-muted)', marginRight: 10 }}>{String(i+1).padStart(3,'0')}</span>
+                  {t}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* footer legend */}
+        <div style={{
+          padding: '14px 24px', borderTop: '1px solid var(--line)',
+          fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-muted)',
+          letterSpacing: '0.08em', flexShrink: 0,
+          display: 'flex', justifyContent: 'space-between',
+        }}>
+          <span>{mode === 'live' ? 'CLAUDE HAIKU 4.5 · BROWSER-SIDE' : 'SCRIPT · 6 TURNS'}</span>
+          <span>FAISS KB: {KB.length} DOCS</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('app')).render(<App/>);
+</script>
+</body>
+</html>

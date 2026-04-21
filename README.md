@@ -8,6 +8,23 @@ turns, and fires a mock lead-capture tool only after all three slots
 (name, email, platform) are filled, the email passes validation, and
 the user explicitly confirms.
 
+## Design portfolio
+
+Full design system + six polished artifacts are in [`design/`](design/) —
+open [`design/index.html`](design/index.html) locally (or enable GitHub
+Pages) to browse the portfolio hub:
+
+- **Landing page** — bold display type, orange accent, creator-energy
+- **Chat UI** — custom web widget + WhatsApp mobile mockup, every phase on a pannable canvas
+- **Pitch deck** — 10-slide investor deck at 1920×1080
+- **Architecture diagram** — 5-node LangGraph flow, phase state machine, tool-capture locks
+- **Animated storyboard** — 45-second Stage/Sprite walkthrough of the full conversation
+- **Interactive prototype** — scripted + live-LLM modes with a state inspector
+
+The Streamlit app is skinned with the same design tokens
+(`design/shared/tokens.css`): electric orange `#FF5A1F` on near-black
+`#0A0A0A`, Space Grotesk display + Inter body + JetBrains Mono chips.
+
 > Built for the ServiceHive ML Intern take-home. Stack note: the plan
 > originally targeted **Gemini 1.5 Flash** for LLM calls, but Google
 > has since retired that model and the remaining free-tier Gemini

@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AutoStream — Portfolio Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/tokens.css">
+<style>
+  body { padding: 60px 40px; }
+  .wrap { max-width: 1280px; margin: 0 auto; }
+  .hero-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding-bottom: 24px; border-bottom: 1px solid var(--line);
+    margin-bottom: 60px;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; font-family: var(--font-display); font-weight: 600; font-size: 22px; letter-spacing: -0.02em; }
+  .brand-mark {
+    width: 34px; height: 34px; border-radius: 5px;
+    background: var(--accent); display: inline-flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 14px rgba(255,90,31,.35);
+  }
+  .kicker {
+    font-family: var(--font-mono); font-size: 12px; color: var(--accent);
+    letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 24px;
+    display: inline-flex; align-items: center; gap: 14px;
+  }
+  .kicker::before { content: ''; width: 32px; height: 2px; background: var(--accent); }
+  h1.mega {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: clamp(80px, 12vw, 180px); letter-spacing: -0.05em; line-height: 0.92;
+    margin: 0;
+  }
+  h1 .strike { text-decoration: line-through; text-decoration-color: var(--accent); text-decoration-thickness: 8px; color: var(--fg-muted); }
+  .lede { font-size: 22px; line-height: 1.5; color: var(--fg-dim); max-width: 720px; margin-top: 36px; }
+
+  .meta {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    margin-top: 72px; border-top: 1px solid var(--line);
+  }
+  .meta .cell {
+    padding: 24px 24px 24px 0; border-right: 1px solid var(--line);
+  }
+  .meta .cell:last-child { border-right: none; }
+  .meta .k { font-family: var(--font-mono); font-size: 10px; color: var(--fg-dim); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 10px; }
+  .meta .v { font-family: var(--font-mono); font-size: 16px; color: var(--fg); letter-spacing: 0.02em; }
+
+  .artifacts-head {
+    margin-top: 120px; margin-bottom: 40px;
+    display: grid; grid-template-columns: 200px 1fr; gap: 40px; align-items: baseline;
+  }
+  .artifacts-head .idx { font-family: var(--font-mono); font-size: 12px; color: var(--fg-muted); letter-spacing: 0.1em; }
+  .artifacts-head h2 {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: 56px; letter-spacing: -0.03em; margin: 0; line-height: 1;
+  }
+
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .card {
+    position: relative;
+    display: flex; flex-direction: column;
+    border: 1px solid var(--line);
+    background: var(--bg-elev);
+    text-decoration: none; color: inherit;
+    transition: all .2s;
+    min-height: 360px;
+    overflow: hidden;
+  }
+  .card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 20px 60px rgba(0,0,0,.3);
+  }
+  .card .preview {
+    height: 220px; background: #0C0C0C;
+    position: relative; overflow: hidden;
+    border-bottom: 1px solid var(--line);
+  }
+  .card:hover .preview::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(180deg, transparent, rgba(255,90,31,.06));
+  }
+  .card .body { padding: 26px 28px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .card .meta-row { display: flex; justify-content: space-between; align-items: center; font-family: var(--font-mono); font-size: 10px; color: var(--fg-dim); letter-spacing: 0.14em; text-transform: uppercase; }
+  .card h3 {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: 28px; letter-spacing: -0.02em; margin: 0; line-height: 1.1;
+  }
+  .card p { font-size: 14px; line-height: 1.5; color: var(--fg-dim); margin: 0; }
+  .card .arrow {
+    align-self: flex-end; margin-top: auto;
+    font-family: var(--font-mono); font-size: 12px; color: var(--accent);
+    letter-spacing: 0.14em; text-transform: uppercase;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .card:hover .arrow { gap: 10px; }
+
+  /* Previews — each card has a distinct styled mini visual */
+  .p-chat { padding: 24px; display: flex; flex-direction: column; gap: 8px; }
+  .p-chat .bub { padding: 8px 12px; border-radius: 8px; font-size: 12px; max-width: 70%; font-family: var(--font-body); }
+  .p-chat .agent { background: var(--bg-elev-2); border: 1px solid var(--line); color: var(--fg); border-radius: 2px 10px 10px 10px; align-self: flex-start; }
+  .p-chat .user { background: var(--accent); color: var(--bg); align-self: flex-end; border-radius: 10px 2px 10px 10px; font-weight: 500; }
+  .p-chat .chips { display: flex; gap: 4px; }
+  .p-chat .chip { padding: 4px 8px; border: 1px solid var(--accent); color: var(--accent); border-radius: 999px; font-family: var(--font-mono); font-size: 9px; }
+
+  .p-landing { padding: 28px; display: flex; flex-direction: column; justify-content: flex-end; position: relative; overflow: hidden; }
+  .p-landing::before { content: ''; position: absolute; top: -60px; right: -60px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(255,90,31,.15), transparent 70%); }
+  .p-landing .eyebrow { font-family: var(--font-mono); font-size: 9px; color: var(--accent); letter-spacing: 0.16em; margin-bottom: 8px; }
+  .p-landing .big { font-family: var(--font-display); font-weight: 600; font-size: 40px; letter-spacing: -0.04em; line-height: 0.95; color: var(--fg); }
+  .p-landing .big .strk { text-decoration: line-through; text-decoration-color: var(--accent); text-decoration-thickness: 3px; color: var(--fg-muted); }
+
+  .p-deck { padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 20px; }
+  .p-deck .mini {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 4px;
+    padding: 14px; display: flex; flex-direction: column; gap: 4px; justify-content: flex-end;
+    position: relative;
+  }
+  .p-deck .mini .t { font-family: var(--font-mono); font-size: 8px; color: var(--accent); letter-spacing: 0.16em; }
+  .p-deck .mini .h { font-family: var(--font-display); font-weight: 600; font-size: 16px; letter-spacing: -0.02em; line-height: 1; }
+  .p-deck .mini.accent { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .p-deck .mini.accent .t { color: var(--bg); }
+
+  .p-arch { padding: 32px; display: flex; align-items: center; justify-content: center; position: relative; }
+  .p-arch svg { width: 100%; height: 100%; max-height: 160px; }
+
+  .p-video { padding: 28px; position: relative; overflow: hidden; }
+  .p-video::before { content: ''; position: absolute; inset: 0; background: radial-gradient(500px 200px at 20% 20%, rgba(255,90,31,.12), transparent 60%); }
+  .p-video .play { width: 56px; height: 56px; border-radius: 28px; background: var(--accent); display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 8px 32px rgba(255,90,31,.4); margin-bottom: 16px; }
+  .p-video .timeline { display: flex; gap: 3px; margin-top: 20px; }
+  .p-video .seg { height: 6px; flex: 1; background: var(--line); }
+  .p-video .seg.on { background: var(--accent); }
+  .p-video .scenes { display: flex; gap: 10px; margin-top: 10px; font-family: var(--font-mono); font-size: 9px; color: var(--fg-dim); letter-spacing: 0.1em; }
+
+  .p-proto { padding: 0; display: grid; grid-template-columns: 1fr 1fr; }
+  .p-proto .side { padding: 20px; display: flex; flex-direction: column; gap: 6px; }
+  .p-proto .side:first-child { border-right: 1px solid var(--line); }
+  .p-proto .lbl { font-family: var(--font-mono); font-size: 8px; color: var(--accent); letter-spacing: 0.14em; }
+  .p-proto .phase-pill { padding: 4px 8px; border: 1px solid var(--accent); background: rgba(255,90,31,.12); color: var(--accent); font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.08em; text-align: center; }
+  .p-proto .slot { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 10px; padding: 4px 6px; border: 1px solid var(--line); background: var(--bg); color: var(--fg-dim); }
+  .p-proto .slot.on { color: var(--accent); border-color: var(--accent); }
+
+  footer {
+    margin-top: 120px; padding-top: 28px; border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between;
+    font-family: var(--font-mono); font-size: 11px; color: var(--fg-dim); letter-spacing: 0.06em;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero-head">
+    <div class="brand">
+      <span class="brand-mark">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="6" width="10" height="8" rx="1" fill="#0A0A0A"/><path d="M13 9 L17 6 V14 L13 11 Z" fill="#0A0A0A"/></svg>
+      </span>
+      AUTOSTREAM
+    </div>
+    <div class="meta" style="display: flex; gap: 20px; border: none; margin: 0; font-family: var(--font-mono); font-size: 11px; color: var(--fg-dim); letter-spacing: 0.1em; text-transform: uppercase;">
+      <span>JAINAM · PORTFOLIO</span>
+      <span style="color: var(--accent)">● LIVE</span>
+    </div>
+  </div>
+
+  <div>
+    <div class="kicker">Case study · automated video editing · AI agent</div>
+    <h1 class="mega">Ship videos.<br/><span class="strike">Not edits.</span></h1>
+    <p class="lede">
+      AutoStream is a fictional creator-tools product I designed, built, and deployed end-to-end:
+      a landing page, a pitch deck, an in-product sales agent with RAG and a phase state machine,
+      plus the architecture and animation that show how it all fits together.
+    </p>
+
+    <div class="meta">
+      <div class="cell"><div class="k">Role</div><div class="v">Design · Eng · Product</div></div>
+      <div class="cell"><div class="k">Stack</div><div class="v">LangGraph · Groq · FAISS · FastAPI</div></div>
+      <div class="cell"><div class="k">Surfaces</div><div class="v">Landing · Deck · Chat · Agent · Video</div></div>
+      <div class="cell"><div class="k">Status</div><div class="v" style="color: var(--accent)">Shipped · Apr 2026</div></div>
+    </div>
+  </div>
+
+  <div class="artifacts-head">
+    <div class="idx">[ 01 / ARTIFACTS ]</div>
+    <h2>Six surfaces. One product.</h2>
+  </div>
+
+  <div class="grid">
+    <!-- 1 LANDING -->
+    <a class="card" href="landing/Landing Page.html">
+      <div class="preview p-landing">
+        <div class="eyebrow">● AUTOSTREAM</div>
+        <div class="big">Ship<br/>videos.<br/><span class="strk">Not edits.</span></div>
+      </div>
+      <div class="body">
+        <div class="meta-row"><span>[ 01 / LANDING ]</span><span>HTML · RESPONSIVE</span></div>
+        <h3>Landing page</h3>
+        <p>Hero, feature grid, pricing, pricing · 7-day refund. Bold display type, orange accent, creator-energy tone.</p>
+        <span class="arrow">Open →</span>
+      </div>
+    </a>
+
+    <!-- 2 DECK -->
+    <a class="card" href="deck/Pitch Deck.html">
+      <div class="preview p-deck">
+        <div class="mini"><div class="t">[ 01 ]</div><div class="h">Ship<br/>videos.</div></div>
+        <div class="mini"><div class="t">[ 02 / PROBLEM ]</div><div class="h">6hrs<br/>editing</div></div>
+        <div class="mini accent"><div class="t">[ 09 / THESIS ]</div><div class="h">Not faster<br/>editors.</div></div>
+        <div class="mini"><div class="t">[ 10 / CLOSE ]</div><div class="h">Post<br/>more.</div></div>
+      </div>
+      <div class="body">
+        <div class="meta-row"><span>[ 02 / DECK ]</span><span>10 SLIDES · 1920×1080</span></div>
+        <h3>Pitch deck</h3>
+        <p>Investor-style 10-slide deck: problem, product, agent wedge, architecture, pricing, market, close.</p>
+        <span class="arrow">Open →</span>
+      </div>
+    </a>
+
+    <!-- 3 CHAT UI -->
+    <a class="card" href="chat/Chat UI.html">
+      <div class="preview p-chat">
+        <div class="bub agent">Hey! I'm AutoStream's assistant.</div>
+        <div class="chips">
+          <span class="chip">Pricing</span><span class="chip">Sign up</span>
+        </div>
+        <div class="bub user">What does Pro include?</div>
+        <div class="bub agent">$79/mo — unlimited edits, 4K export…</div>
+      </div>
+      <div class="body">
+        <div class="meta-row"><span>[ 03 / CHAT UI ]</span><span>WEB + WHATSAPP</span></div>
+        <h3>Chat UI design</h3>
+        <p>Custom web widget and WhatsApp mockup, every phase side-by-side on a pannable design canvas.</p>
+        <span class="arrow">Open →</span>
+      </div>
+    </a>
+
+    <!-- 4 ARCHITECTURE -->
+    <a class="card" href="architecture/Architecture.html">
+      <div class="preview p-arch">
+        <svg viewBox="0 0 400 140" fill="none">
+          <rect x="20" y="50" width="60" height="40" rx="20" stroke="#6B6660" stroke-dasharray="3 3"/>
+          <text x="50" y="74" text-anchor="middle" fill="#A8A29E" font-family="Space Grotesk" font-size="10" font-weight="600">User</text>
+          <rect x="110" y="50" width="80" height="40" rx="2" fill="#1a0d06" stroke="#FF5A1F"/>
+          <text x="150" y="74" text-anchor="middle" fill="#F5F1EA" font-family="Space Grotesk" font-size="10" font-weight="600">classify</text>
+          <rect x="220" y="20" width="80" height="30" rx="2" fill="#141414" stroke="#262626"/>
+          <text x="260" y="39" text-anchor="middle" fill="#F5F1EA" font-family="Space Grotesk" font-size="9">extract</text>
+          <rect x="220" y="60" width="80" height="30" rx="2" fill="#141414" stroke="#262626"/>
+          <text x="260" y="79" text-anchor="middle" fill="#F5F1EA" font-family="Space Grotesk" font-size="9">retrieve</text>
+          <rect x="220" y="100" width="80" height="30" rx="2" fill="#1a0d06" stroke="#FF5A1F"/>
+          <text x="260" y="119" text-anchor="middle" fill="#FF5A1F" font-family="Space Grotesk" font-size="9">capture</text>
+          <rect x="330" y="50" width="60" height="40" rx="2" fill="#141414" stroke="#262626"/>
+          <text x="360" y="74" text-anchor="middle" fill="#F5F1EA" font-family="Space Grotesk" font-size="10" font-weight="600">respond</text>
+          <path d="M80 70 L110 70" stroke="#3a3a3a" stroke-width="1.2"/>
+          <path d="M190 65 L220 35" stroke="#3a3a3a" stroke-width="1.2"/>
+          <path d="M190 70 L220 75" stroke="#3a3a3a" stroke-width="1.2"/>
+          <path d="M190 78 L220 115" stroke="#FF5A1F" stroke-width="1.4"/>
+          <path d="M300 35 L330 60" stroke="#3a3a3a" stroke-width="1.2"/>
+          <path d="M300 75 L330 70" stroke="#3a3a3a" stroke-width="1.2"/>
+          <path d="M300 115 L330 80" stroke="#FF5A1F" stroke-width="1.4"/>
+        </svg>
+      </div>
+      <div class="body">
+        <div class="meta-row"><span>[ 04 / ARCHITECTURE ]</span><span>LANGGRAPH · 5 NODES</span></div>
+        <h3>Architecture diagram</h3>
+        <p>5-node LangGraph flow, persisted state fields, four-phase machine. Three locks on lead capture.</p>
+        <span class="arrow">Open →</span>
+      </div>
+    </a>
+
+    <!-- 5 VIDEO -->
+    <a class="card" href="storyboard/Storyboard.html">
+      <div class="preview p-video">
+        <div class="play">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M6 4l10 6-10 6V4z" fill="#0A0A0A"/></svg>
+        </div>
+        <div style="font-family: var(--font-display); font-weight: 600; font-size: 22px; letter-spacing: -0.02em; line-height: 1.1;">Life of a conversation</div>
+        <div style="font-family: var(--font-mono); font-size: 10px; color: var(--fg-dim); letter-spacing: 0.1em; margin-top: 4px;">00:00 / 00:45 · 1920×1080</div>
+        <div class="timeline">
+          <div class="seg on"></div><div class="seg on"></div><div class="seg on"></div><div class="seg"></div><div class="seg"></div>
+        </div>
+        <div class="scenes">
+          <span>COVER</span><span>BROWSE</span><span style="color:var(--accent)">QUALIFY</span><span>CONFIRM</span><span>CLOSE</span>
+        </div>
+      </div>
+      <div class="body">
+        <div class="meta-row"><span>[ 05 / MOTION ]</span><span>45s · INTERACTIVE</span></div>
+        <h3>Animated storyboard</h3>
+        <p>45-second walkthrough of the four-phase agent conversation — bubbles, state transitions, tool-fire.</p>
+        <span class="arrow">Play →</span>
+      </div>
+    </a>
+
+    <!-- 6 PROTOTYPE -->
+    <a class="card" href="prototype/Interactive Prototype.html">
+      <div class="preview p-proto">
+        <div class="side">
+          <div class="lbl">CHAT</div>
+          <div style="background: var(--bg-elev-2); padding: 6px 10px; border-radius: 6px 6px 6px 2px; font-size: 11px;">Sign me up</div>
+          <div style="background: var(--accent); color: var(--bg); padding: 6px 10px; border-radius: 6px 6px 2px 6px; font-size: 11px; align-self: flex-end; font-weight: 500;">YouTube</div>
+          <div style="font-family: var(--font-mono); font-size: 9px; color: var(--fg-muted); margin-top: 4px;">↵ TYPE ANYTHING</div>
+        </div>
+        <div class="side">
+          <div class="lbl">INSPECTOR</div>
+          <div class="phase-pill">02 · QUALIFYING</div>
+          <div class="slot on"><span>NAME</span><span>Jainam ●</span></div>
+          <div class="slot"><span>EMAIL</span><span>— ○</span></div>
+          <div class="slot on"><span>PLATFORM</span><span>YT ●</span></div>
+        </div>
+      </div>
+      <div class="body">
+        <div class="meta-row"><span>[ 06 / PROTOTYPE ]</span><span>SCRIPTED + LIVE LLM</span></div>
+        <h3>Interactive prototype</h3>
+        <p>Click through the canonical script, or flip to live mode and chat with a real LLM-backed agent with full state inspector.</p>
+        <span class="arrow">Try it →</span>
+      </div>
+    </a>
+  </div>
+
+  <div class="artifacts-head">
+    <div class="idx">[ 02 / NOTES ]</div>
+    <h2>Design decisions.</h2>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border: 1px solid var(--line);">
+    <div style="padding: 32px; border-right: 1px solid var(--line);">
+      <div style="font-family: var(--font-mono); font-size: 10px; color: var(--accent); letter-spacing: 0.14em; margin-bottom: 14px;">[ ROUTING ]</div>
+      <h4 style="font-family: var(--font-display); font-weight: 600; font-size: 22px; letter-spacing: -0.01em; margin: 0 0 10px;">Phase, not intent.</h4>
+      <p style="font-size: 14px; color: var(--fg-dim); line-height: 1.55; margin: 0;">Routing is driven by phase, not a per-turn intent classifier. Stops "Jainam" from being mis-read as a greeting mid-collection.</p>
+    </div>
+    <div style="padding: 32px; border-right: 1px solid var(--line);">
+      <div style="font-family: var(--font-mono); font-size: 10px; color: var(--accent); letter-spacing: 0.14em; margin-bottom: 14px;">[ TOOL GATE ]</div>
+      <h4 style="font-family: var(--font-display); font-weight: 600; font-size: 22px; letter-spacing: -0.01em; margin: 0 0 10px;">Three locks on capture.</h4>
+      <p style="font-size: 14px; color: var(--fg-dim); line-height: 1.55; margin: 0;">mock_lead_capture fires only if all 3 slots are filled, email regex-valid, and user has explicitly confirmed. Premature firing is structurally impossible.</p>
+    </div>
+    <div style="padding: 32px;">
+      <div style="font-family: var(--font-mono); font-size: 10px; color: var(--accent); letter-spacing: 0.14em; margin-bottom: 14px;">[ RAG ]</div>
+      <h4 style="font-family: var(--font-display); font-weight: 600; font-size: 22px; letter-spacing: -0.01em; margin: 0 0 10px;">Retrieval only when asked.</h4>
+      <p style="font-size: 14px; color: var(--fg-dim); line-height: 1.55; margin: 0;">FAISS retrieval fires on product_inquiry only — greetings, slot-collection, and objections skip it. Cheaper and less prone to answer-drift.</p>
+    </div>
+  </div>
+
+  <footer>
+    <span>© 2026 AUTOSTREAM · BUILT BY JAINAM · DISTILL.FYI</span>
+    <span>LANGGRAPH · GROQ · FAISS · FASTAPI</span>
+  </footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AutoStream — Pitch Deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="slides.css">
+<script src="deck-stage.js"></script>
+</head>
+<body>
+
+<deck-stage width="1920" height="1080">
+
+  <!-- 1 · COVER -->
+  <section class="slide" data-label="Cover">
+    <div class="slide-header">
+      <span class="logo">AUTOSTREAM</span>
+      <span>PITCH · APR 2026</span>
+    </div>
+    <div class="slide-body" style="justify-content: center;">
+      <div class="kicker-sm">Automated video editing — for creators</div>
+      <h1 class="mega">Ship videos.<br/><span class="strike">Not edits.</span></h1>
+      <p class="body-lg" style="margin-top: 40px; max-width: 1100px;">
+        Upload raw footage. Get ready-to-post videos back in 12 minutes.
+        No timeline. No filler work. Just post.
+      </p>
+    </div>
+    <div class="slide-footer">
+      <span>JAINAM · FOUNDER</span>
+      <span>01 / 10</span>
+    </div>
+  </section>
+
+  <!-- 2 · THE PROBLEM -->
+  <section class="slide" data-label="Problem">
+    <div class="slide-header"><span class="logo">AUTOSTREAM</span><span>[ 02 / PROBLEM ]</span></div>
+    <div class="slide-body">
+      <div class="kicker-sm">The gap</div>
+      <h2 class="section-h">Creators spend <span class="accent-txt">6&nbsp;hours editing</span><br/>for every <span class="accent-txt">10 minutes</span> of post.</h2>
+      <div class="metrics" style="margin-top: 96px;">
+        <div class="metric">
+          <div class="n">73<sup>%</sup></div>
+          <div class="lbl">of solo creators say<br/>editing is their bottleneck</div>
+        </div>
+        <div class="metric">
+          <div class="n">4<sup>×</sup></div>
+          <div class="lbl">posts per week<br/>required to grow on TikTok</div>
+        </div>
+        <div class="metric">
+          <div class="n">$85</div>
+          <div class="lbl">avg. cost per outsourced<br/>edit on freelance markets</div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span>PROBLEM</span><span>02 / 10</span></div>
+  </section>
+
+  <!-- 3 · THE PRODUCT -->
+  <section class="slide" data-label="Product">
+    <div class="slide-header"><span class="logo">AUTOSTREAM</span><span>[ 03 / PRODUCT ]</span></div>
+    <div class="slide-body">
+      <div class="kicker-sm">What it does</div>
+      <h2 class="section-h">Upload once. <span class="accent-txt">Post everywhere.</span></h2>
+      <div class="four-col" style="margin-top: 80px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);">
+        <div class="col-card">
+          <div class="num">01 / UPLOAD</div>
+          <h3>Drop footage.</h3>
+          <p>Phone, camera, OBS. Up to 2 hrs per job.</p>
+        </div>
+        <div class="col-card">
+          <div class="num">02 / CHOOSE</div>
+          <h3>Pick platform.</h3>
+          <p>YouTube, TikTok, IG Reel, Twitch clip.</p>
+        </div>
+        <div class="col-card">
+          <div class="num">03 / REVIEW</div>
+          <h3>Review draft.</h3>
+          <p>Cuts, captions, crops — already in place.</p>
+        </div>
+        <div class="col-card">
+          <div class="num">04 / POST</div>
+          <h3>Export & ship.</h3>
+          <p>Every aspect ratio in parallel. 4K on Pro.</p>
+        </div>
+      </div>
+      <p class="body-lg" style="margin-top: 64px;">
+        The creator reviews — they never edit. That's the whole thesis.
+      </p>
+    </div>
+    <div class="slide-footer"><span>PRODUCT</span><span>03 / 10</span></div>
+  </section>
+
+  <!-- 4 · THE SALES AGENT -->
+  <section class="slide" data-label="The Agent">
+    <div class="slide-header"><span class="logo">AUTOSTREAM</span><span>[ 04 / THE AGENT ]</span></div>
+    <div class="slide-body">
+      <div class="two-col" style="align-items: stretch;">
+        <div style="display: flex; flex-direction: column; justify-content: center;">
+          <div class="kicker-sm">The wedge</div>
+          <h2 class="section-h">We sell the product<br/>with <span class="accent-txt">a product.</span></h2>
+          <p class="body-lg" style="margin-top: 40px;">
+            An in-page and WhatsApp agent that answers plan, feature, and
+            policy questions — then qualifies interested visitors into leads.
+            No forms. No CTAs. Just a conversation.
+          </p>
+          <div class="pill-row" style="margin-top: 40px;">
+            <span class="pill-lg on">LangGraph</span>
+            <span class="pill-lg on">Groq LLaMA</span>
+            <span class="pill-lg on">FAISS RAG</span>
+            <span class="pill-lg on">WhatsApp-ready</span>
+          </div>
+        </div>
+        <div class="mini-chat">
+          <div class="hd">AUTOSTREAM · LIVE</div>
+          <div class="mb agent">Hey! I'm AutoStream's assistant. Ask me anything about plans, features, or pricing.</div>
+          <div class="mini-chips">
+            <span class="mchip">Tell me about pricing</span>
+            <span class="mchip">Compare plans</span>
+            <span class="mchip">I want to sign up</span>
+          </div>
+          <div class="mb user">What does Pro include?</div>
+          <div class="mb agent">Pro is $79/mo — unlimited edits, 4K export, AI captions, 24/7 support. Built for full-time creators.</div>
+          <div class="mini-chips">
+            <span class="mchip">Sign me up</span>
+            <span class="mchip">Refund policy?</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span>THE AGENT</span><span>04 / 10</span></div>
+  </section>
+
+  <!-- 5 · CONVERSATION DESIGN -->
+  <section class="slide" data-label="Conversation Design">
+    <div class="slide-header"><span class="logo">AUTOSTREAM</span><span>[ 05 / CONVERSATION DESIGN ]</span></div>
+    <div class="slide-body">
+      <div class="kicker-sm">Four phases, one direction</div>
+      <h2 class="section-h">Routing by <span class="accent-txt">phase</span>, not by intent.</h2>
+      <p class="body-lg" style="margin-top: 24px;">
+        Intent changes every turn. Phase doesn't. We route on state — so "Jainam"
+        never gets classified as a greeting mid-collection.
+      </p>
+      <div class="phase-flow">
+        <div class="pf-node">
+          <div class="pf-num">01 / BROWSING</div>
+          <h5>Exploring</h5>
+          <p>Answers via RAG. Objections handled. Follow-ups routed.</p>
+        </div>
+        <div class="pf-node active">
+          <div class="pf-num">02 / QUALIFYING</div>
+          <h5>Collecting</h5>
+          <p>One slot at a time. Free text always. Product Qs pause & resume.</p>
+        </div>
+        <div class="pf-node">
+          <div class="pf-num">03 / CONFIRMING</div>
+          <h5>Recapping</h5>
+          <p>Recap with two buttons: submit or fix.</p>
+        </div>
+        <div class="pf-node">
+          <div class="pf-num">04 / CAPTURED</div>
+          <h5>Done</h5>
+          <p>Tool fires once. Drops back to browsing.</p>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span>CONVERSATION</span><span>05 / 10</span></div>
+  </section>
+
+  <!-- 6 · ARCHITECTURE -->
+  <section class="slide" data-label="Architecture">
+    <div class="slide-header"><span class="logo">AUTOSTREAM</span><span>[ 06 / ARCHITECTURE ]</span></div>
+    <div class="slide-body">
+      <div class="kicker-sm">Engineering decisions</div>
+      <h2 class="section-h">Five nodes. <span class="accent-txt">Three locks.</span><br/>Zero hallucinated prices.</h2>
+      <div class="big-list" style="margin-top: 60px;">
+        <div class="li">
+          <div class="n">01</div>
+          <div>
+            <h4>LangGraph state machine, not a prompt pile.</h4>
+            <p>classify_intent → extract_lead → retrieve → capture → respond. Routing edges enforce the phase contract in code, not vibes.</p>
+          </div>
+        </div>
+        <div class="li">
+          <div class="n">02</div>
+          <div>
+            <h4>FAISS RAG fires only on product inquiries.</h4>
+            <p>all-MiniLM-L6-v2 embeddings, pre-built cache committed to the repo. Greetings and slot-collection turns skip retrieval entirely.</p>
+          </div>
+        </div>
+        <div class="li">
+          <div class="n">03</div>
+          <div>
+            <h4>Lead capture has three locks.</h4>
+            <p>Tool can only fire when: all 3 slots filled, email regex-valid, <em>and</em> user has confirmed. Premature firing is structurally impossible.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span>ARCHITECTURE</span><span>06 / 10</span></div>
+  </section>
+
+  <!-- 7 · PRICING & MODEL -->
+  <section class="slide" data-label="Pricing">
+    <div class="slide-header"><span class="logo">AUTOSTREAM</span><span>[ 07 / PRICING ]</span></div>
+    <div class="slide-body">
+      <div class="kicker-sm">Business model</div>
+      <h2 class="section-h">Two plans. <span class="accent-txt">Both honest.</span></h2>
+      <div class="two-col" style="margin-top: 80px;">
+        <div style="border: 1px solid var(--line); padding: 48px; background: var(--bg-elev); display: flex; flex-direction: column; gap: 24px;">
+          <div class="tag-mono">[ BASIC ]</div>
+          <div class="display" style="font-size: 120px; letter-spacing: -0.04em; line-height: 1;">$29<span style="font-size: 28px; color: var(--fg-dim); font-weight: 400; margin-left: 8px;">/mo</span></div>
+          <ul style="list-style: none; padding: 0; margin: 0; font-size: 22px; display: flex; flex-direction: column; gap: 12px; color: var(--fg);">
+            <li style="display:flex; gap:14px;"><span style="color: var(--accent)">→</span> 10 videos / month</li>
+            <li style="display:flex; gap:14px;"><span style="color: var(--accent)">→</span> Up to 720p export</li>
+            <li style="display:flex; gap:14px;"><span style="color: var(--accent)">→</span> Auto-cut, captions, crop</li>
+            <li style="display:flex; gap:14px;"><span style="color: var(--accent)">→</span> Email support</li>
+          </ul>
+        </div>
+        <div style="border: 1px solid var(--accent); padding: 48px; background: linear-gradient(180deg, rgba(255,90,31,.08), transparent 60%); display: flex; flex-direction: column; gap: 24px;">
+          <div class="tag-mono" style="color: var(--accent)">[ PRO · MOST POPULAR ]</div>
+          <div class="display" style="font-size: 120px; letter-spacing: -0.04em; line-height: 1;">$79<span style="font-size: 28px; color: var(--fg-dim); font-weight: 400; margin-left: 8px;">/mo</span></div>
+          <ul style="list-style: none; padding: 0; margin: 0; font-size: 22px; display: flex; flex-direction: column; gap: 12px; color: var(--fg);">
+            <li style="display:flex; gap:14px;"><span style="color: var(--accent)">→</span> Unlimited edits</li>
+            <li style="display:flex; gap:14px;"><span style="color: var(--accent)">→</span> 4K export</li>
+            <li style="display:flex; gap:14px;"><span style="color: var(--accent)">→</span> AI captions · priority queue</li>
+            <li style="display:flex; gap:14px;"><span style="color: var(--accent)">→</span> 24/7 support · brand kits</li>
+          </ul>
+        </div>
+      </div>
+      <p class="tag-mono" style="margin-top: 40px;">* 7-day full refund. No refunds after.</p>
+    </div>
+    <div class="slide-footer"><span>PRICING</span><span>07 / 10</span></div>
+  </section>
+
+  <!-- 8 · MARKET -->
+  <section class="slide" data-label="Market">
+    <div class="slide-header"><span class="logo">AUTOSTREAM</span><span>[ 08 / MARKET ]</span></div>
+    <div class="slide-body">
+      <div class="kicker-sm">Why now</div>
+      <h2 class="section-h">Short-form eats long-form.<br/><span class="accent-txt">Creators need speed.</span></h2>
+      <div class="metrics" style="margin-top: 96px;">
+        <div class="metric">
+          <div class="n">207<sup>M</sup></div>
+          <div class="lbl">global creators<br/>posting weekly</div>
+        </div>
+        <div class="metric">
+          <div class="n">$21<sup>B</sup></div>
+          <div class="lbl">creator-tools TAM<br/>by 2027</div>
+        </div>
+        <div class="metric">
+          <div class="n">4×</div>
+          <div class="lbl">post frequency gap<br/>vs. manual editing</div>
+        </div>
+      </div>
+      <p class="body-lg" style="margin-top: 80px;">
+        The people who win short-form are the people who can post every day.
+        Editing is the rate-limiter. AutoStream removes it.
+      </p>
+    </div>
+    <div class="slide-footer"><span>MARKET</span><span>08 / 10</span></div>
+  </section>
+
+  <!-- 9 · TRACTION / DEMO -->
+  <section class="slide accent" data-label="Why This Works">
+    <div class="slide-header"><span class="logo">AUTOSTREAM</span><span>[ 09 / THESIS ]</span></div>
+    <div class="slide-body" style="justify-content: center;">
+      <div class="kicker-sm">The bet</div>
+      <h1 class="big" style="color: var(--bg)">The next wave of creator tools<br/>isn't <em>faster editors.</em><br/>It's <span style="text-decoration: line-through; text-decoration-color: rgba(10,10,10,.4); text-decoration-thickness: 6px;">editors</span> at all.</h1>
+      <p class="body-lg" style="color: rgba(10,10,10,.85); margin-top: 48px; max-width: 1300px;">
+        We're building the product that finishes the job automatically — and
+        the agent that qualifies the creator who needs it. Both ship. Both work.
+      </p>
+    </div>
+    <div class="slide-footer"><span style="color: rgba(10,10,10,.7)">THESIS</span><span style="color: rgba(10,10,10,.7)">09 / 10</span></div>
+  </section>
+
+  <!-- 10 · CLOSE -->
+  <section class="slide" data-label="Close">
+    <div class="slide-header"><span class="logo">AUTOSTREAM</span><span>[ 10 / CLOSE ]</span></div>
+    <div class="slide-body" style="justify-content: center;">
+      <div class="kicker-sm">Let's talk</div>
+      <h1 class="mega">Post <span class="accent-txt">more.</span><br/>Edit <span class="strike">less</span> never.</h1>
+      <div style="margin-top: 80px; display: flex; gap: 60px; font-family: var(--font-mono); font-size: 22px; color: var(--fg-dim); letter-spacing: 0.08em;">
+        <div>
+          <div style="color: var(--fg-muted); font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 10px;">FOUNDER</div>
+          <div style="color: var(--fg)">Jainam · jainam@autostream.app</div>
+        </div>
+        <div>
+          <div style="color: var(--fg-muted); font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 10px;">DEMO</div>
+          <div style="color: var(--fg)">autostream.app/demo</div>
+        </div>
+        <div>
+          <div style="color: var(--fg-muted); font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 10px;">STACK</div>
+          <div style="color: var(--fg)">LangGraph · Groq · FAISS · FastAPI</div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span>CLOSE</span><span>10 / 10</span></div>
+  </section>
+
+</deck-stage>
+
+</body>
+</html>

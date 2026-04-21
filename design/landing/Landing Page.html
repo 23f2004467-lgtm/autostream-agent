@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AutoStream — Ship videos. Not edits.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<style>
+  body { overflow-x: hidden; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 0 40px; }
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    backdrop-filter: blur(20px);
+    background: rgba(10,10,10,.75);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  nav .inner {
+    display: flex; align-items: center; gap: 28px; height: 62px;
+    font-family: var(--font-mono);
+    font-size: 12px; letter-spacing: 0.06em;
+  }
+  nav a { color: var(--fg-dim); text-decoration: none; text-transform: uppercase; }
+  nav a:hover { color: var(--fg); }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-display); font-weight: 600; font-size: 18px;
+    color: var(--fg); letter-spacing: -0.02em;
+    text-transform: none;
+  }
+  .logo-mark {
+    width: 28px; height: 28px; border-radius: 4px;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 16px; border-radius: 6px;
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em;
+    text-transform: uppercase; text-decoration: none;
+    transition: all .15s; cursor: pointer; border: none;
+  }
+  .btn-primary {
+    background: var(--accent); color: var(--bg);
+    box-shadow: 0 4px 14px rgba(255,90,31,.25);
+  }
+  .btn-primary:hover { background: var(--accent-soft); transform: translateY(-1px); }
+  .btn-ghost {
+    background: transparent; color: var(--fg);
+    border: 1px solid var(--line);
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Hero */
+  .hero { padding: 100px 0 40px; position: relative; }
+  .hero::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(1000px 400px at 20% 0%, rgba(255,90,31,.08), transparent 60%);
+    pointer-events: none;
+  }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: var(--font-mono); font-size: 11px;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 24px;
+  }
+  .eyebrow::before {
+    content: ''; width: 24px; height: 1px; background: var(--accent);
+  }
+  h1 {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: clamp(64px, 11vw, 168px);
+    letter-spacing: -0.045em; line-height: 0.92;
+    margin: 0; color: var(--fg);
+  }
+  h1 .orange { color: var(--accent); }
+  h1 .strike {
+    text-decoration: line-through;
+    text-decoration-color: var(--accent);
+    text-decoration-thickness: 8px;
+    color: var(--fg-muted);
+  }
+  .hero p.lede {
+    font-size: 20px; line-height: 1.5; max-width: 560px;
+    margin-top: 36px; color: var(--fg-dim);
+  }
+  .hero-cta { display: flex; gap: 12px; margin-top: 32px; }
+  .hero-stats {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 0; margin-top: 100px;
+    border-top: 1px solid var(--line);
+  }
+  .stat {
+    padding: 28px 24px 28px 0;
+    border-right: 1px solid var(--line);
+  }
+  .stat:last-child { border-right: none; padding-right: 0; }
+  .stat .num {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: 44px; letter-spacing: -0.03em; color: var(--fg);
+    line-height: 1;
+  }
+  .stat .num sup { color: var(--accent); font-size: .6em; margin-left: 4px; }
+  .stat .label {
+    font-family: var(--font-mono); font-size: 11px; color: var(--fg-dim);
+    text-transform: uppercase; letter-spacing: 0.12em; margin-top: 10px;
+  }
+
+  /* Section headers */
+  .section { padding: 120px 0; border-top: 1px solid var(--line); position: relative; }
+  .sec-label {
+    display: grid; grid-template-columns: 160px 1fr;
+    gap: 40px; margin-bottom: 56px; align-items: baseline;
+  }
+  .sec-label .idx {
+    font-family: var(--font-mono); font-size: 12px;
+    color: var(--fg-muted); letter-spacing: 0.1em;
+  }
+  .sec-label h2 {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: clamp(40px, 5vw, 64px);
+    letter-spacing: -0.035em; line-height: 1;
+    margin: 0; color: var(--fg);
+    max-width: 800px;
+  }
+  .sec-label h2 .accent-word { color: var(--accent); }
+
+  /* Agent demo block */
+  .agent-demo {
+    display: grid; grid-template-columns: 1.2fr 1fr;
+    gap: 60px; align-items: center;
+  }
+  .agent-caption h3 {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: 36px; letter-spacing: -0.02em; margin: 0 0 18px;
+  }
+  .agent-caption p {
+    color: var(--fg-dim); font-size: 16px; line-height: 1.6;
+    max-width: 440px;
+  }
+  .agent-caption .feats {
+    margin-top: 28px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .agent-caption .feats .feat {
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--font-mono); font-size: 12px;
+    color: var(--fg); letter-spacing: 0.02em;
+  }
+  .feat .dot { width: 6px; height: 6px; background: var(--accent); border-radius: 2px; }
+
+  .chat-mock {
+    background: #0F0F0F; border: 1px solid var(--line);
+    border-radius: 14px; padding: 22px;
+    display: flex; flex-direction: column; gap: 12px;
+    box-shadow: 0 40px 100px rgba(0,0,0,.4);
+  }
+  .bubble {
+    max-width: 82%; padding: 10px 14px; border-radius: 12px;
+    font-size: 14px; line-height: 1.45;
+  }
+  .b-agent {
+    background: var(--bg-elev); border: 1px solid var(--line);
+    color: var(--fg); align-self: flex-start;
+    border-radius: 4px 12px 12px 12px;
+  }
+  .b-user {
+    background: var(--accent); color: var(--bg);
+    align-self: flex-end; font-weight: 500;
+    border-radius: 12px 4px 12px 12px;
+  }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+  .chip {
+    background: transparent; border: 1px solid var(--accent); color: var(--accent);
+    padding: 5px 11px; border-radius: 999px;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.02em;
+  }
+
+  /* Features grid */
+  .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .feature {
+    background: var(--bg); padding: 36px 32px;
+    display: flex; flex-direction: column; gap: 16px; min-height: 260px;
+  }
+  .feature .tag {
+    font-family: var(--font-mono); font-size: 10px; color: var(--accent);
+    letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .feature h4 {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: 24px; letter-spacing: -0.02em; margin: 0;
+  }
+  .feature p { color: var(--fg-dim); font-size: 14px; line-height: 1.55; margin: 0; }
+  .feature .ico {
+    width: 36px; height: 36px; border-radius: 4px;
+    background: var(--bg-elev); border: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Pricing */
+  .pricing { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .plan {
+    border: 1px solid var(--line); padding: 36px 32px;
+    background: var(--bg-elev);
+    display: flex; flex-direction: column; gap: 20px;
+    position: relative;
+  }
+  .plan.pro {
+    background: linear-gradient(180deg, rgba(255,90,31,.08), transparent 60%);
+    border-color: var(--accent);
+  }
+  .plan .name {
+    font-family: var(--font-mono); font-size: 11px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-dim);
+  }
+  .plan.pro .name { color: var(--accent); }
+  .plan .price {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: 72px; letter-spacing: -0.04em; line-height: 1;
+  }
+  .plan .price .per { font-size: 18px; color: var(--fg-dim); font-weight: 400; margin-left: 6px; }
+  .plan ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+  .plan li {
+    font-size: 14px; color: var(--fg); display: flex; gap: 10px; align-items: flex-start;
+  }
+  .plan li::before {
+    content: '→'; color: var(--accent); font-family: var(--font-mono); flex-shrink: 0;
+  }
+  .plan li.muted { color: var(--fg-muted); text-decoration: line-through; }
+  .plan li.muted::before { color: var(--fg-muted); }
+  .plan .tagline { color: var(--fg-dim); font-size: 13px; line-height: 1.5; min-height: 40px; }
+
+  /* How it works */
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  .step {
+    border: 1px solid var(--line); padding: 28px 24px;
+    display: flex; flex-direction: column; gap: 14px;
+    background: var(--bg);
+  }
+  .step .num {
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--accent); letter-spacing: 0.12em;
+  }
+  .step h5 {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: 20px; margin: 0; letter-spacing: -0.01em;
+  }
+  .step p { color: var(--fg-dim); font-size: 13px; line-height: 1.5; margin: 0; }
+
+  /* CTA */
+  .big-cta {
+    padding: 120px 0 100px;
+    text-align: left;
+    border-top: 1px solid var(--line);
+    background: radial-gradient(800px 300px at 50% 0%, rgba(255,90,31,.10), transparent 60%);
+  }
+  .big-cta h2 {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: clamp(56px, 8vw, 112px);
+    letter-spacing: -0.04em; line-height: 0.95; margin: 0;
+  }
+  .big-cta .buttons { display: flex; gap: 14px; margin-top: 40px; }
+
+  /* Footer */
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 40px 0;
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--fg-dim); letter-spacing: 0.04em;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  footer .wrap { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+
+  /* Marquee */
+  .marquee {
+    padding: 30px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+    overflow: hidden; background: #0C0C0C;
+    font-family: var(--font-mono); font-size: 13px;
+    color: var(--fg-dim); letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .marquee .track {
+    display: inline-flex; gap: 60px; white-space: nowrap;
+    animation: slide 40s linear infinite;
+  }
+  .marquee .track span { display: inline-flex; align-items: center; gap: 60px; }
+  .marquee .sep { color: var(--accent); }
+  @keyframes slide {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  /* Platforms */
+  .platforms {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    margin-top: 40px;
+  }
+  .platform-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px;
+    font-family: var(--font-mono); font-size: 12px; color: var(--fg-dim);
+    letter-spacing: 0.04em;
+  }
+  .platform-pill .d { width: 5px; height: 5px; border-radius: 3px; background: var(--accent); }
+
+  @media (max-width: 900px) {
+    .agent-demo { grid-template-columns: 1fr; }
+    .features { grid-template-columns: 1fr; }
+    .pricing { grid-template-columns: 1fr; }
+    .steps { grid-template-columns: 1fr 1fr; }
+    .hero-stats { grid-template-columns: 1fr 1fr; }
+    .sec-label { grid-template-columns: 1fr; gap: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap inner">
+    <a href="#" class="logo">
+      <span class="logo-mark">
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><rect x="3" y="6" width="10" height="8" rx="1" fill="#0A0A0A"/><path d="M13 9 L17 6 V14 L13 11 Z" fill="#0A0A0A"/></svg>
+      </span>
+      autostream
+    </a>
+    <div style="flex: 1"></div>
+    <a href="#agent">Agent</a>
+    <a href="#features">Features</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#docs">Docs</a>
+    <a href="#signin" style="color: var(--fg)">Sign in</a>
+    <a href="#start" class="btn btn-primary">Start free</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Automated video editing · for creators</div>
+    <h1>
+      Ship videos.<br/>
+      <span class="strike">Not edits.</span>
+    </h1>
+    <p class="lede">
+      AutoStream turns raw footage into ready-to-post videos in minutes. 4K export, AI captions,
+      platform-native cuts — no timeline required. Built for YouTube, TikTok, Instagram and Twitch.
+    </p>
+    <div class="hero-cta">
+      <a href="#start" class="btn btn-primary">Start free →</a>
+      <a href="#demo" class="btn btn-ghost">Watch 90-sec demo</a>
+    </div>
+    <div class="platforms">
+      <span class="platform-pill"><span class="d"></span>YOUTUBE</span>
+      <span class="platform-pill"><span class="d"></span>TIKTOK</span>
+      <span class="platform-pill"><span class="d"></span>INSTAGRAM</span>
+      <span class="platform-pill"><span class="d"></span>TWITCH</span>
+      <span class="platform-pill"><span class="d"></span>+ MORE</span>
+    </div>
+
+    <div class="hero-stats">
+      <div class="stat">
+        <div class="num">12<sup>min</sup></div>
+        <div class="label">avg. turnaround</div>
+      </div>
+      <div class="stat">
+        <div class="num">4K</div>
+        <div class="label">Pro export quality</div>
+      </div>
+      <div class="stat">
+        <div class="num">0</div>
+        <div class="label">timelines required</div>
+      </div>
+      <div class="stat">
+        <div class="num">$29<sup>/mo</sup></div>
+        <div class="label">starting plan</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="marquee">
+  <div class="track">
+    <span>AUTO-CUT <i class="sep">●</i> AUTO-CAPTION <i class="sep">●</i> AUTO-CROP <i class="sep">●</i> AUTO-LEVELS <i class="sep">●</i> AUTO-BLEEP <i class="sep">●</i> AUTO-CHAPTERS <i class="sep">●</i> AUTO-THUMBS <i class="sep">●</i></span>
+    <span>AUTO-CUT <i class="sep">●</i> AUTO-CAPTION <i class="sep">●</i> AUTO-CROP <i class="sep">●</i> AUTO-LEVELS <i class="sep">●</i> AUTO-BLEEP <i class="sep">●</i> AUTO-CHAPTERS <i class="sep">●</i> AUTO-THUMBS <i class="sep">●</i></span>
+  </div>
+</div>
+
+<section id="agent" class="section">
+  <div class="wrap">
+    <div class="sec-label">
+      <div class="idx">[ 01 / AGENT ]</div>
+      <h2>A sales assistant that <span class="accent-word">talks</span> — so you can keep shipping.</h2>
+    </div>
+    <div class="agent-demo">
+      <div class="chat-mock">
+        <div class="bubble b-agent">Hey! I'm AutoStream's assistant. Want to hear about our plans, features, or pricing?</div>
+        <div class="chips">
+          <span class="chip">Tell me about pricing</span>
+          <span class="chip">Compare plans</span>
+          <span class="chip">I want to sign up</span>
+        </div>
+        <div class="bubble b-user">What does Pro include?</div>
+        <div class="bubble b-agent">The Pro Plan is $79/month — unlimited edits, 4K export, AI captions, and 24/7 support. Built for full-time creators.</div>
+        <div class="chips">
+          <span class="chip">Sign me up</span>
+          <span class="chip">Compare plans</span>
+          <span class="chip">What about refunds?</span>
+        </div>
+      </div>
+      <div class="agent-caption">
+        <h3>Answers, not ads.</h3>
+        <p>
+          Our in-product agent uses RAG over our live knowledge base to answer questions about plans,
+          features and policies. It never hallucinates a price or invents a feature.
+        </p>
+        <div class="feats">
+          <div class="feat"><span class="dot"></span>LANGGRAPH STATE MACHINE</div>
+          <div class="feat"><span class="dot"></span>FAISS RAG · 5 CHUNK KB</div>
+          <div class="feat"><span class="dot"></span>MULTI-TURN MEMORY (6+ TURNS)</div>
+          <div class="feat"><span class="dot"></span>WHATSAPP-READY TRANSPORT</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features" class="section">
+  <div class="wrap">
+    <div class="sec-label">
+      <div class="idx">[ 02 / FEATURES ]</div>
+      <h2>Everything between the <span class="accent-word">upload</span> and the <span class="accent-word">post</span>.</h2>
+    </div>
+    <div class="features">
+      <div class="feature">
+        <div class="ico"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 4h14v10H2zM6 2v14M12 2v14" stroke="#FF5A1F" stroke-width="1.5"/></svg></div>
+        <div class="tag">[ AUTO-CUT ]</div>
+        <h4>Silence, umms, dead air — gone.</h4>
+        <p>Upload raw footage. AutoStream strips filler, tightens pacing, and keeps the best takes. You review, not edit.</p>
+      </div>
+      <div class="feature">
+        <div class="ico"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 6h12M3 10h8M3 14h12" stroke="#FF5A1F" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+        <div class="tag">[ CAPTIONS ]</div>
+        <h4>Caption styles tuned to platform.</h4>
+        <p>TikTok karaoke, YouTube clean-line, IG hook-first — AI captions auto-styled per platform.</p>
+      </div>
+      <div class="feature">
+        <div class="ico"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="12" stroke="#FF5A1F" stroke-width="1.5"/><rect x="5" y="6" width="8" height="6" stroke="#FF5A1F" stroke-width="1.2"/></svg></div>
+        <div class="tag">[ AUTO-CROP ]</div>
+        <h4>One upload, every aspect ratio.</h4>
+        <p>16:9, 9:16, 1:1 — subjects stay centered. Ship to all your channels from a single master.</p>
+      </div>
+      <div class="feature">
+        <div class="ico"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 14l4-6 3 4 4-7 3 5" stroke="#FF5A1F" stroke-width="1.5" fill="none"/></svg></div>
+        <div class="tag">[ LEVELS ]</div>
+        <h4>Audio leveled. Music ducked.</h4>
+        <p>Broadcast-spec loudness targets by platform. Music auto-ducks under voice. No more bad mixes.</p>
+      </div>
+      <div class="feature">
+        <div class="ico"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="3" width="12" height="4" stroke="#FF5A1F" stroke-width="1.5"/><rect x="3" y="11" width="7" height="4" stroke="#FF5A1F" stroke-width="1.5"/></svg></div>
+        <div class="tag">[ CHAPTERS ]</div>
+        <h4>Chapters & hooks, written for you.</h4>
+        <p>Auto-generated chapters and a platform-tuned first-three-seconds hook. Click-through lifts out of the box.</p>
+      </div>
+      <div class="feature">
+        <div class="ico"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="6" stroke="#FF5A1F" stroke-width="1.5"/><path d="M7 9l2 2 3-4" stroke="#FF5A1F" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+        <div class="tag">[ 4K EXPORT ]</div>
+        <h4>Pro exports up to 4K.</h4>
+        <p>Basic ships at 720p — enough for getting started. Upgrade to Pro for 4K, unlimited edits, and 24/7 support.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="sec-label">
+      <div class="idx">[ 03 / HOW IT WORKS ]</div>
+      <h2>Four steps. <span class="accent-word">No timeline.</span></h2>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="num">01 / UPLOAD</div>
+        <h5>Drop your footage.</h5>
+        <p>Record from your phone, camera, or OBS. Drag-and-drop up to 2 hours per job.</p>
+      </div>
+      <div class="step">
+        <div class="num">02 / CHOOSE</div>
+        <h5>Pick the platform.</h5>
+        <p>YouTube long-form, TikTok vertical, IG Reel, Twitch clip — AutoStream templates the cut.</p>
+      </div>
+      <div class="step">
+        <div class="num">03 / REVIEW</div>
+        <h5>Review, don't edit.</h5>
+        <p>Skim the draft with cuts already in place. Regenerate any section. Tweak with one click.</p>
+      </div>
+      <div class="step">
+        <div class="num">04 / POST</div>
+        <h5>Export and ship.</h5>
+        <p>Download or publish direct to channel. Every aspect ratio exported in parallel.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="pricing" class="section">
+  <div class="wrap">
+    <div class="sec-label">
+      <div class="idx">[ 04 / PRICING ]</div>
+      <h2>Two plans. <span class="accent-word">Both honest.</span></h2>
+    </div>
+    <div class="pricing">
+      <div class="plan">
+        <div class="name">BASIC</div>
+        <div>
+          <span class="price">$29<span class="per">/month</span></span>
+        </div>
+        <div class="tagline">Best for hobbyist creators testing the platform.</div>
+        <ul>
+          <li>10 videos per month</li>
+          <li>Up to 720p export</li>
+          <li>Auto-cut, captions, auto-crop</li>
+          <li>Email support (business hours)</li>
+          <li class="muted">4K export</li>
+          <li class="muted">24/7 support</li>
+        </ul>
+        <a href="#start" class="btn btn-ghost">Start Basic →</a>
+      </div>
+      <div class="plan pro">
+        <div class="name">PRO · MOST POPULAR</div>
+        <div>
+          <span class="price">$79<span class="per">/month</span></span>
+        </div>
+        <div class="tagline">Best for full-time content creators and small studios.</div>
+        <ul>
+          <li>Unlimited video edits</li>
+          <li>4K resolution export</li>
+          <li>AI-generated captions</li>
+          <li>24/7 customer support</li>
+          <li>Priority render queue</li>
+          <li>Brand kits & templates</li>
+        </ul>
+        <a href="#start" class="btn btn-primary">Go Pro →</a>
+      </div>
+    </div>
+    <p style="font-family: var(--font-mono); font-size: 12px; color: var(--fg-dim); letter-spacing: 0.04em; margin-top: 28px; max-width: 600px;">
+      * FULL REFUND AVAILABLE WITHIN 7 DAYS OF PURCHASE. NO REFUNDS AFTER 7 DAYS — SEE OUR REFUND POLICY.
+    </p>
+  </div>
+</section>
+
+<section class="big-cta">
+  <div class="wrap">
+    <h2>Post <span class="orange" style="color: var(--accent)">more.</span><br/>Edit <span style="text-decoration: line-through; text-decoration-color: var(--accent); text-decoration-thickness: 6px; color: var(--fg-muted)">less</span> never.</h2>
+    <div class="buttons">
+      <a href="#start" class="btn btn-primary">Start free · 7-day refund</a>
+      <a href="#talk" class="btn btn-ghost">Talk to the agent</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>© 2026 AUTOSTREAM · SHIP VIDEOS.</div>
+    <div style="display: flex; gap: 24px;">
+      <span>PRIVACY</span><span>TERMS</span><span>STATUS</span><span style="color: var(--fg)">X · IG · YT</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

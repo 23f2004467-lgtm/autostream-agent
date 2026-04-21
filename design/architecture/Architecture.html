@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AutoStream — Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<style>
+  body { min-height: 100vh; padding: 60px 40px; }
+  .page { max-width: 1400px; margin: 0 auto; }
+  .header {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding-bottom: 28px; border-bottom: 1px solid var(--line);
+    margin-bottom: 56px;
+  }
+  .header h1 {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: 44px; letter-spacing: -0.03em; margin: 0;
+  }
+  .header .meta {
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--fg-dim); letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .kicker {
+    font-family: var(--font-mono); font-size: 11px; color: var(--accent);
+    letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 12px;
+  }
+  .diagram {
+    position: relative;
+    padding: 80px 60px;
+    background: #0C0C0C;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .diagram::before {
+    content: ''; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(255,90,31,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,90,31,.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none; opacity: .5;
+  }
+  svg.arch { width: 100%; height: auto; display: block; position: relative; z-index: 1; }
+
+  .legend {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+    margin-top: 48px;
+  }
+  .legend .item {
+    padding: 20px; border: 1px solid var(--line);
+    display: flex; flex-direction: column; gap: 8px;
+    background: var(--bg-elev);
+  }
+  .legend .tag {
+    font-family: var(--font-mono); font-size: 10px; color: var(--accent);
+    letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .legend h4 {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: 16px; margin: 0; letter-spacing: -0.01em;
+  }
+  .legend p { font-size: 13px; color: var(--fg-dim); line-height: 1.5; margin: 0; }
+
+  .phase-row {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+    margin-top: 48px; border: 1px solid var(--line);
+  }
+  .phase-cell {
+    padding: 24px; border-right: 1px solid var(--line);
+    background: var(--bg-elev);
+  }
+  .phase-cell:last-child { border-right: none; }
+  .phase-cell .name {
+    font-family: var(--font-mono); font-size: 11px; color: var(--accent);
+    letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 10px;
+  }
+  .phase-cell h5 {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: 20px; margin: 0 0 8px; letter-spacing: -0.02em;
+  }
+  .phase-cell p { font-size: 12px; color: var(--fg-dim); line-height: 1.5; margin: 0; }
+  .phase-cell .slots {
+    margin-top: 14px; display: flex; gap: 6px;
+    font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.06em;
+  }
+  .phase-cell .slot { padding: 3px 7px; border: 1px solid var(--line); border-radius: 2px; color: var(--fg-dim); }
+  .phase-cell .slot.on { color: var(--accent); border-color: var(--accent); }
+
+  .nodeLabel { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 16px; fill: var(--fg); }
+  .nodeSub { font-family: 'JetBrains Mono', monospace; font-size: 10px; fill: var(--fg-dim); letter-spacing: 0.08em; }
+  .edgeLabel { font-family: 'JetBrains Mono', monospace; font-size: 10px; fill: var(--fg-muted); letter-spacing: 0.06em; }
+  .nodeBox { fill: #141414; stroke: #262626; stroke-width: 1; }
+  .nodeBox.accent { fill: #1a0d06; stroke: var(--accent); }
+  .nodeBox.terminal { fill: transparent; stroke: var(--fg-dim); stroke-dasharray: 3 3; }
+  .edge { stroke: #3a3a3a; stroke-width: 1.4; fill: none; }
+  .edge.hot { stroke: var(--accent); stroke-width: 1.8; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div>
+      <div class="kicker">[ autostream · architecture ]</div>
+      <h1>Agent runtime.</h1>
+    </div>
+    <div class="meta">
+      REV 01 · LANGGRAPH + GROQ + FAISS · APR 2026
+    </div>
+  </div>
+
+  <div class="diagram">
+    <svg class="arch" viewBox="0 0 1200 640" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#3a3a3a"/>
+        </marker>
+        <marker id="arrowHot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#FF5A1F"/>
+        </marker>
+      </defs>
+
+      <!-- User message input -->
+      <rect class="nodeBox terminal" x="40" y="260" width="160" height="60" rx="30"/>
+      <text class="nodeLabel" x="120" y="290" text-anchor="middle">User</text>
+      <text class="nodeSub" x="120" y="306" text-anchor="middle">MESSAGE</text>
+
+      <!-- classify_intent -->
+      <rect class="nodeBox accent" x="250" y="260" width="180" height="70" rx="4"/>
+      <text class="nodeLabel" x="340" y="288" text-anchor="middle">classify_intent</text>
+      <text class="nodeSub" x="340" y="308" text-anchor="middle">6 LABELS · PYDANTIC</text>
+
+      <!-- extract_lead -->
+      <rect class="nodeBox" x="480" y="140" width="180" height="70" rx="4"/>
+      <text class="nodeLabel" x="570" y="168" text-anchor="middle">extract_lead</text>
+      <text class="nodeSub" x="570" y="188" text-anchor="middle">NAME · EMAIL · PLATFORM</text>
+
+      <!-- retrieve (RAG) -->
+      <rect class="nodeBox" x="480" y="280" width="180" height="70" rx="4"/>
+      <text class="nodeLabel" x="570" y="308" text-anchor="middle">retrieve</text>
+      <text class="nodeSub" x="570" y="328" text-anchor="middle">FAISS · TOP-3 COSINE</text>
+
+      <!-- capture -->
+      <rect class="nodeBox accent" x="480" y="420" width="180" height="70" rx="4"/>
+      <text class="nodeLabel" x="570" y="448" text-anchor="middle">capture</text>
+      <text class="nodeSub" x="570" y="468" text-anchor="middle">mock_lead_capture()</text>
+
+      <!-- respond -->
+      <rect class="nodeBox" x="720" y="260" width="180" height="70" rx="4"/>
+      <text class="nodeLabel" x="810" y="288" text-anchor="middle">respond</text>
+      <text class="nodeSub" x="810" y="308" text-anchor="middle">REPLY + QUICK_REPLIES</text>
+
+      <!-- END -->
+      <rect class="nodeBox terminal" x="950" y="260" width="160" height="60" rx="30"/>
+      <text class="nodeLabel" x="1030" y="290" text-anchor="middle">Agent</text>
+      <text class="nodeSub" x="1030" y="306" text-anchor="middle">REPLY</text>
+
+      <!-- Edges -->
+      <path class="edge" d="M 200 290 L 246 290" marker-end="url(#arrow)"/>
+
+      <!-- classify -> extract (phase in qualifying/confirming OR intent in high_intent/greeting) -->
+      <path class="edge" d="M 390 260 Q 430 260 430 175 L 476 175" marker-end="url(#arrow)"/>
+      <text class="edgeLabel" x="396" y="225">phase ∈ {qualifying,</text>
+      <text class="edgeLabel" x="396" y="238">confirming}  OR  intent</text>
+      <text class="edgeLabel" x="396" y="251">= high_intent / greeting</text>
+
+      <!-- classify -> retrieve (product_inquiry) -->
+      <path class="edge" d="M 430 310 L 476 310" marker-end="url(#arrow)"/>
+      <text class="edgeLabel" x="440" y="345">intent = product_inquiry</text>
+
+      <!-- classify -> respond (else) -->
+      <path class="edge" d="M 390 330 Q 430 380 720 380 L 720 310" marker-end="url(#arrow)"/>
+      <text class="edgeLabel" x="640" y="395">else (objection / other)</text>
+
+      <!-- extract -> retrieve (product_inquiry) -->
+      <path class="edge" d="M 570 210 L 570 276" marker-end="url(#arrow)"/>
+      <text class="edgeLabel" x="580" y="250">intent = product_inquiry</text>
+
+      <!-- extract -> capture (confirming) -->
+      <path class="edge hot" d="M 660 180 Q 720 180 720 400 L 720 450 L 664 450" marker-end="url(#arrowHot)"/>
+      <text class="edgeLabel" x="675" y="340" fill="#FF5A1F">phase_at_turn_start =</text>
+      <text class="edgeLabel" x="675" y="353" fill="#FF5A1F">confirming AND still</text>
+      <text class="edgeLabel" x="675" y="366" fill="#FF5A1F">confirming AND consent</text>
+
+      <!-- extract -> respond (else) -->
+      <path class="edge" d="M 660 190 Q 810 190 810 256" marker-end="url(#arrow)"/>
+
+      <!-- retrieve -> respond -->
+      <path class="edge" d="M 660 310 L 716 295" marker-end="url(#arrow)"/>
+
+      <!-- retrieve -> capture (confirming) -->
+      <path class="edge" d="M 570 350 L 570 416" marker-end="url(#arrow)"/>
+
+      <!-- capture -> respond -->
+      <path class="edge hot" d="M 660 450 Q 810 450 810 334" marker-end="url(#arrowHot)"/>
+
+      <!-- respond -> END -->
+      <path class="edge" d="M 900 290 L 946 290" marker-end="url(#arrow)"/>
+
+      <!-- Side rail: state persistence -->
+      <rect class="nodeBox" x="40" y="500" width="1120" height="100" rx="4"/>
+      <text class="nodeLabel" x="60" y="530">AgentState (TypedDict)</text>
+      <text class="nodeSub" x="60" y="548" style="font-size: 11px;">PERSISTED BY LANGGRAPH MEMORY­SAVER · KEYED BY THREAD_ID</text>
+
+      <!-- state fields as pills -->
+      <g transform="translate(60, 568)">
+        <g transform="translate(0,0)">
+          <rect width="120" height="20" rx="2" fill="transparent" stroke="#FF5A1F" stroke-width="1"/>
+          <text class="edgeLabel" x="60" y="14" text-anchor="middle" fill="#FF5A1F">messages[]</text>
+        </g>
+        <g transform="translate(132,0)">
+          <rect width="70" height="20" rx="2" fill="transparent" stroke="#FF5A1F" stroke-width="1"/>
+          <text class="edgeLabel" x="35" y="14" text-anchor="middle" fill="#FF5A1F">phase</text>
+        </g>
+        <g transform="translate(214,0)">
+          <rect width="70" height="20" rx="2" fill="transparent" stroke="#FF5A1F" stroke-width="1"/>
+          <text class="edgeLabel" x="35" y="14" text-anchor="middle" fill="#FF5A1F">intent</text>
+        </g>
+        <g transform="translate(296,0)">
+          <rect width="110" height="20" rx="2" fill="transparent" stroke="#FF5A1F" stroke-width="1"/>
+          <text class="edgeLabel" x="55" y="14" text-anchor="middle" fill="#FF5A1F">lead_slots{}</text>
+        </g>
+        <g transform="translate(418,0)">
+          <rect width="150" height="20" rx="2" fill="transparent" stroke="#FF5A1F" stroke-width="1"/>
+          <text class="edgeLabel" x="75" y="14" text-anchor="middle" fill="#FF5A1F">retrieved_context</text>
+        </g>
+        <g transform="translate(580,0)">
+          <rect width="130" height="20" rx="2" fill="transparent" stroke="#FF5A1F" stroke-width="1"/>
+          <text class="edgeLabel" x="65" y="14" text-anchor="middle" fill="#FF5A1F">quick_replies[]</text>
+        </g>
+        <g transform="translate(722,0)">
+          <rect width="170" height="20" rx="2" fill="transparent" stroke="#FF5A1F" stroke-width="1"/>
+          <text class="edgeLabel" x="85" y="14" text-anchor="middle" fill="#FF5A1F">phase_at_turn_start</text>
+        </g>
+      </g>
+    </svg>
+  </div>
+
+  <div class="legend">
+    <div class="item">
+      <div class="tag">[ ROUTING ]</div>
+      <h4>Phase, not intent.</h4>
+      <p>Routing is driven by <code>phase</code>. Intent is detected per turn but only informs the reply. This stops "Jainam" from being mis-classified as a greeting mid-collection.</p>
+    </div>
+    <div class="item">
+      <div class="tag">[ MEMORY ]</div>
+      <h4>MemorySaver · thread_id.</h4>
+      <p>LangGraph's checkpointer persists the full state under a per-session thread. Multi-turn memory well beyond 5–6 turns comes free; the WhatsApp <code>wa_id</code> maps 1:1.</p>
+    </div>
+    <div class="item">
+      <div class="tag">[ RAG ]</div>
+      <h4>FAISS, fires only when warranted.</h4>
+      <p>all-MiniLM-L6-v2 embeddings, pre-built cache committed to the repo. Retrieval fires only on <code>product_inquiry</code> — never on greetings or mid-collection.</p>
+    </div>
+    <div class="item">
+      <div class="tag">[ TOOL GATE ]</div>
+      <h4>Three locks on capture.</h4>
+      <p>The <code>mock_lead_capture</code> tool fires only when all 3 slots are filled, the email passes regex, <em>and</em> the user has explicitly confirmed. It cannot fire prematurely.</p>
+    </div>
+  </div>
+
+  <div style="margin-top: 64px;">
+    <div class="kicker">[ state machine ]</div>
+    <h2 style="font-family: var(--font-display); font-weight: 600; font-size: 32px; letter-spacing: -0.02em; margin: 0 0 8px;">Four phases. One direction.</h2>
+    <p style="color: var(--fg-dim); font-size: 14px; max-width: 720px; line-height: 1.6;">
+      Users move through phases as slots fill. Corrections rewind a phase; successful capture falls back to browsing so follow-up questions route normally.
+    </p>
+  </div>
+  <div class="phase-row">
+    <div class="phase-cell">
+      <div class="name">01 / BROWSING</div>
+      <h5>Exploring</h5>
+      <p>Answering questions via RAG, handling objections, routing follow-ups.</p>
+      <div class="slots">
+        <span class="slot">name</span><span class="slot">email</span><span class="slot">platform</span>
+      </div>
+    </div>
+    <div class="phase-cell">
+      <div class="name">02 / QUALIFYING</div>
+      <h5>Collecting</h5>
+      <p>One slot at a time. Free text always. Product questions pause, then resume.</p>
+      <div class="slots">
+        <span class="slot on">name</span><span class="slot">email</span><span class="slot on">platform</span>
+      </div>
+    </div>
+    <div class="phase-cell">
+      <div class="name">03 / CONFIRMING</div>
+      <h5>Recapping</h5>
+      <p>All three slots + valid email. Recap with two buttons: submit or fix.</p>
+      <div class="slots">
+        <span class="slot on">name</span><span class="slot on">email</span><span class="slot on">platform</span>
+      </div>
+    </div>
+    <div class="phase-cell">
+      <div class="name">04 / CAPTURED</div>
+      <h5>Done</h5>
+      <p>Tool fires exactly once. Then drops back to <em>browsing</em> so follow-ups route.</p>
+      <div class="slots">
+        <span class="slot on">name</span><span class="slot on">email</span><span class="slot on">platform</span>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

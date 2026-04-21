@@ -1,0 +1,90 @@
+/* AutoStream design system — shared tokens */
+:root {
+  --bg: #0A0A0A;
+  --bg-elev: #141414;
+  --bg-elev-2: #1C1C1C;
+  --line: #262626;
+  --line-soft: #1F1F1F;
+  --fg: #F5F1EA;
+  --fg-dim: #A8A29E;
+  --fg-muted: #6B6660;
+  --accent: #FF5A1F;
+  --accent-soft: #FF8A5C;
+  --accent-deep: #D94813;
+  --accent-ink: #0A0A0A;
+  --ok: #7CF29C;
+  --warn: #FFB020;
+  --err: #FF5A5A;
+
+  --light-bg: #F5F1EA;
+  --light-elev: #FFFFFF;
+  --light-line: #E8E1D4;
+  --light-fg: #0A0A0A;
+  --light-dim: #4F4A44;
+
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --radius-xl: 22px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 72px;
+  --space-9: 120px;
+
+  --font-display: "Space Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-body: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+* { box-sizing: border-box; }
+
+.mono { font-family: var(--font-mono); letter-spacing: -0.01em; }
+.display { font-family: var(--font-display); letter-spacing: -0.03em; font-weight: 600; }
+.micro {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+.rule { height: 1px; background: var(--line); width: 100%; }
+.accent { color: var(--accent); }
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  background: var(--bg-elev);
+}
+.pill .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255,90,31,.15);
+}
+
+::selection { background: var(--accent); color: var(--bg); }

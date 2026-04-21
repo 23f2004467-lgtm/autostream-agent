@@ -1,5 +1,9 @@
 """Streamlit chat UI for the AutoStream agent.
 
+Styled to match the AutoStream design system (see `design/shared/tokens.css`):
+dark #0A0A0A surfaces, electric-orange #FF5A1F accent, Space Grotesk /
+Inter / JetBrains Mono type stack, monospace micro-caps labels.
+
 - `st.chat_input` is ALWAYS visible; free text is never blocked.
 - Quick-reply buttons render only beneath the last assistant message.
   Clicking a button is equivalent to typing that label (free-text parity).
@@ -29,7 +33,172 @@ from langchain_core.messages import HumanMessage  # noqa: E402
 
 from src.graph import default_state, graph  # noqa: E402
 
-st.set_page_config(page_title="AutoStream Agent", page_icon=":speech_balloon:")
+st.set_page_config(
+    page_title="AutoStream Agent",
+    page_icon=":material/bolt:",
+    layout="centered",
+)
+
+
+_THEME_CSS = """
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0A0A0A;
+  --bg-elev: #141414;
+  --bg-elev-2: #1C1C1C;
+  --line: #262626;
+  --fg: #F5F1EA;
+  --fg-dim: #A8A29E;
+  --fg-muted: #6B6660;
+  --accent: #FF5A1F;
+  --accent-ink: #0A0A0A;
+  --font-display: "Space Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"], .main {
+  background: var(--bg) !important;
+  color: var(--fg) !important;
+  font-family: var(--font-body) !important;
+}
+
+[data-testid="stHeader"] { background: transparent !important; }
+
+::selection { background: var(--accent); color: var(--bg); }
+
+/* Title — big display type */
+h1, [data-testid="stHeading"] h1 {
+  font-family: var(--font-display) !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.03em !important;
+  color: var(--fg) !important;
+}
+
+/* Caption under title */
+[data-testid="stCaptionContainer"], .stCaption, [data-testid="stMarkdownContainer"] p small {
+  font-family: var(--font-mono) !important;
+  color: var(--fg-dim) !important;
+  letter-spacing: 0.02em !important;
+}
+
+/* Chat messages — user orange bubble, assistant dark card */
+[data-testid="stChatMessage"] {
+  background: transparent !important;
+  padding: 6px 0 !important;
+  border: none !important;
+}
+[data-testid="stChatMessageContent"] {
+  background: var(--bg-elev) !important;
+  border: 1px solid var(--line) !important;
+  color: var(--fg) !important;
+  border-radius: 4px 14px 14px 14px !important;
+  padding: 10px 14px !important;
+  font-family: var(--font-body) !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+}
+[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) [data-testid="stChatMessageContent"] {
+  background: var(--accent) !important;
+  color: var(--accent-ink) !important;
+  border-color: var(--accent) !important;
+  border-radius: 14px 4px 14px 14px !important;
+  font-weight: 500 !important;
+}
+[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) [data-testid="stChatMessageContent"] * {
+  color: var(--accent-ink) !important;
+}
+[data-testid="stChatMessageAvatarAssistant"] {
+  background: var(--accent) !important;
+  border-radius: 4px !important;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 4px 14px rgba(255,90,31,.35) !important;
+}
+[data-testid="stChatMessageAvatarAssistant"] svg {
+  fill: var(--accent-ink) !important;
+  color: var(--accent-ink) !important;
+}
+[data-testid="stChatMessageAvatarUser"] {
+  background: linear-gradient(140deg, #3a3a3a, #1a1a1a) !important;
+  border: 1px solid #333 !important;
+  color: var(--fg-dim) !important;
+  font-family: var(--font-mono) !important;
+}
+
+/* Quick-reply chips — ghost buttons w/ orange outline */
+[data-testid="stBaseButton-secondary"] {
+  background: var(--bg) !important;
+  color: var(--accent) !important;
+  border: 1px solid var(--accent) !important;
+  border-radius: 999px !important;
+  font-family: var(--font-mono) !important;
+  font-size: 11px !important;
+  letter-spacing: 0.02em !important;
+  padding: 6px 12px !important;
+  transition: all .15s !important;
+}
+[data-testid="stBaseButton-secondary"]:hover {
+  background: var(--accent) !important;
+  color: var(--accent-ink) !important;
+}
+
+/* Chat input */
+[data-testid="stChatInput"] {
+  background: var(--bg-elev) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 4px !important;
+}
+[data-testid="stChatInput"]:focus-within {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(255,90,31,.15) !important;
+}
+[data-testid="stChatInput"] textarea {
+  color: var(--fg) !important;
+  font-family: var(--font-body) !important;
+}
+[data-testid="stChatInput"] textarea::placeholder {
+  color: var(--fg-muted) !important;
+}
+
+/* Status spinner ("Thinking…") */
+[data-testid="stStatus"] {
+  background: var(--bg-elev) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 4px !important;
+  color: var(--fg-dim) !important;
+  font-family: var(--font-mono) !important;
+  font-size: 11px !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+}
+
+/* Micro-caps kicker above the title */
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.kicker::before {
+  content: '';
+  width: 28px;
+  height: 2px;
+  background: var(--accent);
+  display: inline-block;
+}
+</style>
+"""
+
+
+def _inject_theme() -> None:
+    st.markdown(_THEME_CSS, unsafe_allow_html=True)
 
 
 def _init_session() -> None:
@@ -66,13 +235,17 @@ def _queue_input(text: str) -> None:
 
 
 def main() -> None:
+    _inject_theme()
     _init_session()
 
-    st.title("AutoStream Agent")
+    st.markdown(
+        '<div class="kicker">AutoStream · Agent</div>',
+        unsafe_allow_html=True,
+    )
+    st.title("Ship videos. Not edits.")
     st.caption(
         "Ask about plans, features, pricing, or sign up. "
-        ":grey_question: **Tip:** the chips under each reply are shortcuts. "
-        "You can always type anything — the agent handles free text the same way."
+        "Chips under each reply are shortcuts — typing any free text works the same way."
     )
 
     # Render chat history
