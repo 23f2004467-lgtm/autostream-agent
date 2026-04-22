@@ -68,6 +68,13 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"], .main {
 
 [data-testid="stHeader"] { background: transparent !important; }
 
+/* Bottom footer strip (around the chat input) — Streamlit defaults to
+   a slightly-off shade that clashes with our dark bg. Force page color. */
+[data-testid="stBottom"],
+[data-testid="stBottomBlockContainer"],
+[data-testid="stBottom"] > div,
+footer { background: var(--bg) !important; }
+
 /* Leave room for the floating inspector panel (top-right, 260px wide). */
 @media (min-width: 1100px) {
   [data-testid="stMain"] .block-container {
@@ -115,6 +122,7 @@ h1, [data-testid="stHeading"] h1 {
 }
 [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
   flex-direction: row-reverse !important;
+  justify-content: flex-end !important;
 }
 [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) [data-testid="stChatMessageContent"] {
   background: var(--accent) !important;
@@ -209,7 +217,9 @@ h1, [data-testid="stHeading"] h1 {
   display: inline-block;
 }
 
-/* ===== Floating inspector panel ===== */
+/* ===== Floating inspector panel (uses <details>/<summary> so the
+   open/collapse toggle is native HTML, no onclick required — which
+   Streamlit's markdown sanitizer would strip). ===== */
 #as-inspector {
   position: fixed;
   top: 72px;
@@ -223,21 +233,25 @@ h1, [data-testid="stHeading"] h1 {
   font-family: "JetBrains Mono", ui-monospace, monospace;
   color: #F5F1EA;
 }
-#as-inspector .as-toggle {
-  width: 100%;
-  border: none;
+#as-inspector > summary {
+  list-style: none;
+  cursor: pointer;
   background: linear-gradient(180deg, #FF5A1F, #E04714);
   color: #0A0A0A;
   padding: 10px 14px;
   display: flex;
   align-items: center;
   gap: 10px;
-  cursor: pointer;
   font-family: inherit;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.14em;
+  user-select: none;
 }
+#as-inspector > summary::-webkit-details-marker { display: none; }
+#as-inspector > summary::marker { content: ''; }
+#as-inspector .as-arrow::before { content: '\25BE'; font-size: 10px; }
+#as-inspector:not([open]) .as-arrow::before { content: '\25B8'; }
 #as-inspector .as-pulse {
   width: 6px; height: 6px; border-radius: 50%;
   background: #0A0A0A;
@@ -250,8 +264,7 @@ h1, [data-testid="stHeading"] h1 {
 }
 #as-inspector .as-title { flex: 1; text-align: left; }
 #as-inspector .as-count { font-weight: 500; opacity: .8; letter-spacing: 0.06em; }
-#as-inspector .as-arrow { font-size: 10px; margin-left: 4px; }
-#as-inspector.collapsed .as-body { display: none; }
+#as-inspector .as-arrow { margin-left: 4px; display: inline-flex; }
 #as-inspector .as-body {
   padding: 14px 14px 16px;
   display: flex;
@@ -347,24 +360,19 @@ def _render_inspector(
     if not leads_rows:
         leads_rows = '<div class="as-lead-empty">no captures yet this session</div>'
 
-    # CSS is injected once in _inject_theme() — here we only emit the
-    # HTML div. Using st.markdown(unsafe_allow_html=True) because
-    # st.html sandboxes position:fixed elements into an iframe where
-    # they can't escape to the page viewport.
+    # Use <details>/<summary> for the toggle — native HTML, no JS
+    # needed. Streamlit's markdown sanitizer would strip an onclick
+    # handler. CSS (in the one-time theme block) handles the arrow
+    # flip based on the [open] attribute.
+    leads_label = f"{len(captured_leads)} " + ("lead" if len(captured_leads) == 1 else "leads")
     html = (
-        '<div id="as-inspector">'
-        '<button class="as-toggle" onclick="'
-        "var el = document.getElementById('as-inspector');"
-        "el.classList.toggle('collapsed');"
-        "var arr = document.getElementById('as-arrow');"
-        "arr.textContent = el.classList.contains('collapsed') ? '\\u25B8' : '\\u25BE';"
-        '">'
+        '<details id="as-inspector" open>'
+        '<summary>'
         '<span class="as-pulse"></span>'
         '<span class="as-title">INSPECTOR</span>'
-        f'<span class="as-count">{len(captured_leads)} '
-        f'{"lead" if len(captured_leads) == 1 else "leads"}</span>'
-        '<span id="as-arrow" class="as-arrow">&#9662;</span>'
-        '</button>'
+        f'<span class="as-count">{leads_label}</span>'
+        '<span class="as-arrow"></span>'
+        '</summary>'
         '<div class="as-body">'
         '<div><div class="as-section-label">PHASE</div>'
         f'<div class="as-phase-pill">{phase.upper()}</div></div>'
@@ -378,7 +386,7 @@ def _render_inspector(
         f'<div><div class="as-section-label">CAPTURED LEADS &middot; {len(captured_leads)}</div>'
         f'<div class="as-leads">{leads_rows}</div></div>'
         '</div>'
-        '</div>'
+        '</details>'
     )
     st.markdown(html, unsafe_allow_html=True)
 
