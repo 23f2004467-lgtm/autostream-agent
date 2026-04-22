@@ -208,6 +208,101 @@ h1, [data-testid="stHeading"] h1 {
   background: var(--accent);
   display: inline-block;
 }
+
+/* ===== Floating inspector panel ===== */
+#as-inspector {
+  position: fixed;
+  top: 72px;
+  right: 24px;
+  width: 260px;
+  z-index: 9999;
+  background: #141414;
+  border: 1px solid #262626;
+  border-radius: 4px;
+  box-shadow: 0 24px 60px rgba(0,0,0,.5);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  color: #F5F1EA;
+}
+#as-inspector .as-toggle {
+  width: 100%;
+  border: none;
+  background: linear-gradient(180deg, #FF5A1F, #E04714);
+  color: #0A0A0A;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+#as-inspector .as-pulse {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #0A0A0A;
+  box-shadow: 0 0 0 3px rgba(10,10,10,.2);
+  animation: as-pulse 2s ease-in-out infinite;
+}
+@keyframes as-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .4; }
+}
+#as-inspector .as-title { flex: 1; text-align: left; }
+#as-inspector .as-count { font-weight: 500; opacity: .8; letter-spacing: 0.06em; }
+#as-inspector .as-arrow { font-size: 10px; margin-left: 4px; }
+#as-inspector.collapsed .as-body { display: none; }
+#as-inspector .as-body {
+  padding: 14px 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+#as-inspector .as-section-label {
+  font-size: 9px; letter-spacing: 0.16em; color: #6B6660; margin-bottom: 6px;
+}
+#as-inspector .as-phase-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  background: rgba(255,90,31,.12);
+  color: #FF5A1F;
+  border: 1px solid #FF5A1F;
+  font-size: 11px; letter-spacing: 0.14em; font-weight: 600;
+}
+#as-inspector .as-intent { font-size: 12px; color: #F5F1EA; }
+#as-inspector .as-slot {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 5px 8px;
+  border: 1px solid #262626;
+  background: #0A0A0A;
+  font-size: 10px;
+  margin-top: 3px;
+  color: #6B6660;
+}
+#as-inspector .as-slot.on { border-color: #FF5A1F; color: #FF5A1F; }
+#as-inspector .as-slot-label { letter-spacing: 0.12em; }
+#as-inspector .as-slot-value {
+  max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  text-align: right;
+}
+#as-inspector .as-leads { display: flex; flex-direction: column; gap: 4px; }
+#as-inspector .as-lead-row {
+  display: flex; gap: 8px; align-items: baseline;
+  padding: 5px 8px; background: #0A0A0A; border: 1px solid #262626;
+  font-size: 10px;
+}
+#as-inspector .as-lead-idx { color: #FF5A1F; font-weight: 600; letter-spacing: 0.1em; }
+#as-inspector .as-lead-name { color: #F5F1EA; flex: 1; }
+#as-inspector .as-lead-plat { color: #6B6660; letter-spacing: 0.08em; font-size: 9px; }
+#as-inspector .as-lead-empty {
+  padding: 8px; color: #6B6660; font-size: 10px; font-style: italic;
+  border: 1px dashed #262626;
+}
+@media (max-width: 900px) {
+  #as-inspector {
+    top: auto; bottom: 90px; right: 12px; width: 220px;
+  }
+}
 </style>
 """
 
@@ -252,141 +347,39 @@ def _render_inspector(
     if not leads_rows:
         leads_rows = '<div class="as-lead-empty">no captures yet this session</div>'
 
-    # NOTE: we use st.markdown(unsafe_allow_html=True) instead of st.html
-    # because st.html sandboxes into an isolated iframe on recent
-    # Streamlit versions — position: fixed inside that iframe positions
-    # relative to the iframe, not the page, so the panel was invisible.
-    # st.markdown injects directly into the main document. Our selectors
-    # use #as-inspector IDs, so markdown's [data-testid=...] parsing
-    # bug doesn't apply here.
-    html = f"""
-<div id="as-inspector" class="as-inspector">
-  <button id="as-toggle" class="as-toggle" onclick="
-    var el = document.getElementById('as-inspector');
-    el.classList.toggle('collapsed');
-    var arr = document.getElementById('as-arrow');
-    arr.textContent = el.classList.contains('collapsed') ? '▸' : '▾';
-  ">
-    <span class="as-pulse"></span>
-    <span class="as-title">INSPECTOR</span>
-    <span class="as-count">{len(captured_leads)} {'lead' if len(captured_leads) == 1 else 'leads'}</span>
-    <span id="as-arrow" class="as-arrow">▾</span>
-  </button>
-  <div class="as-body">
-    <div class="as-section">
-      <div class="as-section-label">PHASE</div>
-      <div class="as-phase-pill">{phase.upper()}</div>
-    </div>
-    <div class="as-section">
-      <div class="as-section-label">LAST INTENT</div>
-      <div class="as-intent">{_esc(intent)}</div>
-    </div>
-    <div class="as-section">
-      <div class="as-section-label">SLOTS</div>
-      {slot_row("NAME", slots.get("name"))}
-      {slot_row("EMAIL", slots.get("email"))}
-      {slot_row("PLATFORM", slots.get("platform"))}
-    </div>
-    <div class="as-section">
-      <div class="as-section-label">CAPTURED LEADS · {len(captured_leads)}</div>
-      <div class="as-leads">{leads_rows}</div>
-    </div>
-  </div>
-</div>
-<style>
-  #as-inspector {{
-    position: fixed;
-    top: 72px;
-    right: 24px;
-    width: 260px;
-    z-index: 9999;
-    background: #141414;
-    border: 1px solid #262626;
-    border-radius: 4px;
-    box-shadow: 0 24px 60px rgba(0,0,0,.5);
-    font-family: "JetBrains Mono", ui-monospace, monospace;
-    color: #F5F1EA;
-  }}
-  #as-inspector .as-toggle {{
-    width: 100%;
-    border: none;
-    background: linear-gradient(180deg, #FF5A1F, #E04714);
-    color: #0A0A0A;
-    padding: 10px 14px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-  }}
-  #as-inspector .as-pulse {{
-    width: 6px; height: 6px; border-radius: 50%;
-    background: #0A0A0A;
-    box-shadow: 0 0 0 3px rgba(10,10,10,.2);
-    animation: as-pulse 2s ease-in-out infinite;
-  }}
-  @keyframes as-pulse {{
-    0%, 100% {{ opacity: 1; }}
-    50% {{ opacity: .4; }}
-  }}
-  #as-inspector .as-title {{ flex: 1; text-align: left; }}
-  #as-inspector .as-count {{ font-weight: 500; opacity: .8; letter-spacing: 0.06em; }}
-  #as-inspector .as-arrow {{ font-size: 10px; margin-left: 4px; }}
-
-  #as-inspector.collapsed .as-body {{ display: none; }}
-
-  #as-inspector .as-body {{ padding: 14px 14px 16px; display: flex; flex-direction: column; gap: 14px; }}
-  #as-inspector .as-section-label {{
-    font-size: 9px; letter-spacing: 0.16em; color: #6B6660; margin-bottom: 6px;
-  }}
-  #as-inspector .as-phase-pill {{
-    display: inline-block;
-    padding: 4px 10px;
-    background: rgba(255,90,31,.12);
-    color: #FF5A1F;
-    border: 1px solid #FF5A1F;
-    font-size: 11px; letter-spacing: 0.14em; font-weight: 600;
-  }}
-  #as-inspector .as-intent {{ font-size: 12px; color: #F5F1EA; }}
-  #as-inspector .as-slot {{
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 5px 8px;
-    border: 1px solid #262626;
-    background: #0A0A0A;
-    font-size: 10px;
-    margin-top: 3px;
-    color: #6B6660;
-  }}
-  #as-inspector .as-slot.on {{ border-color: #FF5A1F; color: #FF5A1F; }}
-  #as-inspector .as-slot-label {{ letter-spacing: 0.12em; }}
-  #as-inspector .as-slot-value {{
-    max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    text-align: right;
-  }}
-  #as-inspector .as-leads {{ display: flex; flex-direction: column; gap: 4px; }}
-  #as-inspector .as-lead-row {{
-    display: flex; gap: 8px; align-items: baseline;
-    padding: 5px 8px; background: #0A0A0A; border: 1px solid #262626;
-    font-size: 10px;
-  }}
-  #as-inspector .as-lead-idx {{ color: #FF5A1F; font-weight: 600; letter-spacing: 0.1em; }}
-  #as-inspector .as-lead-name {{ color: #F5F1EA; flex: 1; }}
-  #as-inspector .as-lead-plat {{ color: #6B6660; letter-spacing: 0.08em; font-size: 9px; }}
-  #as-inspector .as-lead-empty {{
-    padding: 8px; color: #6B6660; font-size: 10px; font-style: italic;
-    border: 1px dashed #262626;
-  }}
-
-  @media (max-width: 900px) {{
-    #as-inspector {{
-      top: auto; bottom: 90px; right: 12px; width: 220px;
-    }}
-  }}
-</style>
-"""
+    # CSS is injected once in _inject_theme() — here we only emit the
+    # HTML div. Using st.markdown(unsafe_allow_html=True) because
+    # st.html sandboxes position:fixed elements into an iframe where
+    # they can't escape to the page viewport.
+    html = (
+        '<div id="as-inspector">'
+        '<button class="as-toggle" onclick="'
+        "var el = document.getElementById('as-inspector');"
+        "el.classList.toggle('collapsed');"
+        "var arr = document.getElementById('as-arrow');"
+        "arr.textContent = el.classList.contains('collapsed') ? '\\u25B8' : '\\u25BE';"
+        '">'
+        '<span class="as-pulse"></span>'
+        '<span class="as-title">INSPECTOR</span>'
+        f'<span class="as-count">{len(captured_leads)} '
+        f'{"lead" if len(captured_leads) == 1 else "leads"}</span>'
+        '<span id="as-arrow" class="as-arrow">&#9662;</span>'
+        '</button>'
+        '<div class="as-body">'
+        '<div><div class="as-section-label">PHASE</div>'
+        f'<div class="as-phase-pill">{phase.upper()}</div></div>'
+        '<div><div class="as-section-label">LAST INTENT</div>'
+        f'<div class="as-intent">{_esc(intent)}</div></div>'
+        '<div><div class="as-section-label">SLOTS</div>'
+        + slot_row("NAME", slots.get("name"))
+        + slot_row("EMAIL", slots.get("email"))
+        + slot_row("PLATFORM", slots.get("platform"))
+        + '</div>'
+        f'<div><div class="as-section-label">CAPTURED LEADS &middot; {len(captured_leads)}</div>'
+        f'<div class="as-leads">{leads_rows}</div></div>'
+        '</div>'
+        '</div>'
+    )
     st.markdown(html, unsafe_allow_html=True)
 
 
