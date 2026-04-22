@@ -200,6 +200,10 @@ class AgentState(TypedDict, total=False):
     # (don't fire — respond with the prompt so the user has a chance to
     # confirm or correct first).
     phase_at_turn_start: Phase
+    # Populated by capture_node on a successful fire. The UI layer
+    # reads this to update its floating "leads captured" inspector in
+    # real time. Each entry is a dict of name/email/platform/timestamp.
+    last_capture: dict
 
 
 def _last_user_text(messages: list[BaseMessage]) -> str:
@@ -337,7 +341,16 @@ def capture_node(state: AgentState) -> dict:
     if confirms and all(slots.get(k) for k in ("name", "email", "platform")) \
             and is_valid_email(slots.get("email")):
         mock_lead_capture(slots["name"], slots["email"], slots["platform"])
-        return {"phase": "captured"}
+        import datetime
+        return {
+            "phase": "captured",
+            "last_capture": {
+                "name": slots["name"],
+                "email": slots["email"],
+                "platform": slots["platform"],
+                "ts": datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z",
+            },
+        }
 
     # Ambiguous or product question mid-confirm — stay, respond re-prompts.
     return {}

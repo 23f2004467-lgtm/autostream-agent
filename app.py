@@ -68,6 +68,14 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"], .main {
 
 [data-testid="stHeader"] { background: transparent !important; }
 
+/* Leave room for the floating inspector panel (top-right, 260px wide). */
+@media (min-width: 1100px) {
+  [data-testid="stMain"] .block-container {
+    max-width: calc(100% - 320px) !important;
+    margin-right: 300px !important;
+  }
+}
+
 ::selection { background: var(--accent); color: var(--bg); }
 
 /* Title — big display type */
@@ -213,6 +221,173 @@ def _escape_dollar(text: str) -> str:
     return text.replace("$", r"\$")
 
 
+def _render_inspector(
+    phase: str,
+    intent: str,
+    slots: dict,
+    captured_leads: list[dict],
+) -> None:
+    """Floating, collapsible state inspector — top-right corner.
+
+    Shows current phase, detected intent, the three lead slots with
+    fill state, and a running list of leads captured this session.
+    Toggle is pure JS (no Streamlit rerun), so collapsing doesn't
+    trigger a graph invocation.
+    """
+    slot_row = lambda label, value: (  # noqa: E731
+        f'<div class="as-slot {"on" if value else ""}">'
+        f'<span class="as-slot-label">{label}</span>'
+        f'<span class="as-slot-value">{_esc(value) if value else "—"}</span>'
+        "</div>"
+    )
+    leads_rows = ""
+    for i, lead in enumerate(reversed(captured_leads[-5:])):
+        leads_rows += (
+            '<div class="as-lead-row">'
+            f'<span class="as-lead-idx">{len(captured_leads) - i:02d}</span>'
+            f'<span class="as-lead-name">{_esc(lead.get("name", ""))}</span>'
+            f'<span class="as-lead-plat">{_esc(lead.get("platform", ""))}</span>'
+            "</div>"
+        )
+    if not leads_rows:
+        leads_rows = '<div class="as-lead-empty">no captures yet this session</div>'
+
+    html = f"""
+<div id="as-inspector" class="as-inspector">
+  <button id="as-toggle" class="as-toggle" onclick="
+    var el = document.getElementById('as-inspector');
+    el.classList.toggle('collapsed');
+    var arr = document.getElementById('as-arrow');
+    arr.textContent = el.classList.contains('collapsed') ? '▸' : '▾';
+  ">
+    <span class="as-pulse"></span>
+    <span class="as-title">INSPECTOR</span>
+    <span class="as-count">{len(captured_leads)} {'lead' if len(captured_leads) == 1 else 'leads'}</span>
+    <span id="as-arrow" class="as-arrow">▾</span>
+  </button>
+  <div class="as-body">
+    <div class="as-section">
+      <div class="as-section-label">PHASE</div>
+      <div class="as-phase-pill">{phase.upper()}</div>
+    </div>
+    <div class="as-section">
+      <div class="as-section-label">LAST INTENT</div>
+      <div class="as-intent">{_esc(intent)}</div>
+    </div>
+    <div class="as-section">
+      <div class="as-section-label">SLOTS</div>
+      {slot_row("NAME", slots.get("name"))}
+      {slot_row("EMAIL", slots.get("email"))}
+      {slot_row("PLATFORM", slots.get("platform"))}
+    </div>
+    <div class="as-section">
+      <div class="as-section-label">CAPTURED LEADS · {len(captured_leads)}</div>
+      <div class="as-leads">{leads_rows}</div>
+    </div>
+  </div>
+</div>
+<style>
+  #as-inspector {{
+    position: fixed;
+    top: 72px;
+    right: 24px;
+    width: 260px;
+    z-index: 9999;
+    background: #141414;
+    border: 1px solid #262626;
+    border-radius: 4px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.5);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    color: #F5F1EA;
+  }}
+  #as-inspector .as-toggle {{
+    width: 100%;
+    border: none;
+    background: linear-gradient(180deg, #FF5A1F, #E04714);
+    color: #0A0A0A;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+  }}
+  #as-inspector .as-pulse {{
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #0A0A0A;
+    box-shadow: 0 0 0 3px rgba(10,10,10,.2);
+    animation: as-pulse 2s ease-in-out infinite;
+  }}
+  @keyframes as-pulse {{
+    0%, 100% {{ opacity: 1; }}
+    50% {{ opacity: .4; }}
+  }}
+  #as-inspector .as-title {{ flex: 1; text-align: left; }}
+  #as-inspector .as-count {{ font-weight: 500; opacity: .8; letter-spacing: 0.06em; }}
+  #as-inspector .as-arrow {{ font-size: 10px; margin-left: 4px; }}
+
+  #as-inspector.collapsed .as-body {{ display: none; }}
+
+  #as-inspector .as-body {{ padding: 14px 14px 16px; display: flex; flex-direction: column; gap: 14px; }}
+  #as-inspector .as-section-label {{
+    font-size: 9px; letter-spacing: 0.16em; color: #6B6660; margin-bottom: 6px;
+  }}
+  #as-inspector .as-phase-pill {{
+    display: inline-block;
+    padding: 4px 10px;
+    background: rgba(255,90,31,.12);
+    color: #FF5A1F;
+    border: 1px solid #FF5A1F;
+    font-size: 11px; letter-spacing: 0.14em; font-weight: 600;
+  }}
+  #as-inspector .as-intent {{ font-size: 12px; color: #F5F1EA; }}
+  #as-inspector .as-slot {{
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 5px 8px;
+    border: 1px solid #262626;
+    background: #0A0A0A;
+    font-size: 10px;
+    margin-top: 3px;
+    color: #6B6660;
+  }}
+  #as-inspector .as-slot.on {{ border-color: #FF5A1F; color: #FF5A1F; }}
+  #as-inspector .as-slot-label {{ letter-spacing: 0.12em; }}
+  #as-inspector .as-slot-value {{
+    max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    text-align: right;
+  }}
+  #as-inspector .as-leads {{ display: flex; flex-direction: column; gap: 4px; }}
+  #as-inspector .as-lead-row {{
+    display: flex; gap: 8px; align-items: baseline;
+    padding: 5px 8px; background: #0A0A0A; border: 1px solid #262626;
+    font-size: 10px;
+  }}
+  #as-inspector .as-lead-idx {{ color: #FF5A1F; font-weight: 600; letter-spacing: 0.1em; }}
+  #as-inspector .as-lead-name {{ color: #F5F1EA; flex: 1; }}
+  #as-inspector .as-lead-plat {{ color: #6B6660; letter-spacing: 0.08em; font-size: 9px; }}
+  #as-inspector .as-lead-empty {{
+    padding: 8px; color: #6B6660; font-size: 10px; font-style: italic;
+    border: 1px dashed #262626;
+  }}
+
+  @media (max-width: 900px) {{
+    #as-inspector {{
+      top: auto; bottom: 90px; right: 12px; width: 220px;
+    }}
+  }}
+</style>
+"""
+    st.html(html)
+
+
+def _esc(val) -> str:
+    import html as _h
+    return _h.escape(str(val)) if val is not None else ""
+
+
 def _inject_theme() -> None:
     # st.html bypasses markdown parsing — critical here because our CSS
     # contains [data-testid="..."] selectors that st.markdown would
@@ -234,6 +409,16 @@ def _init_session() -> None:
         st.session_state.processing = False
     if "first_turn" not in st.session_state:
         st.session_state.first_turn = True
+    if "phase" not in st.session_state:
+        st.session_state.phase = "browsing"
+    if "intent" not in st.session_state:
+        st.session_state.intent = "other"
+    if "slots" not in st.session_state:
+        st.session_state.slots = {"name": None, "email": None, "platform": None}
+    if "captured_leads" not in st.session_state:
+        st.session_state.captured_leads = []  # list[dict]
+    if "last_capture_ts" not in st.session_state:
+        st.session_state.last_capture_ts = None
 
 
 def _run_turn(user_text: str) -> dict:
@@ -257,6 +442,14 @@ def _queue_input(text: str) -> None:
 def main() -> None:
     _inject_theme()
     _init_session()
+
+    # Floating inspector — always present, collapsible in-place.
+    _render_inspector(
+        phase=st.session_state.phase,
+        intent=st.session_state.intent,
+        slots=st.session_state.slots,
+        captured_leads=st.session_state.captured_leads,
+    )
 
     st.html('<div class="kicker">AutoStream · Agent</div>')
     st.title("Ship videos. Not edits.")
@@ -314,6 +507,24 @@ def main() -> None:
                     st.session_state.quick_replies = new_state.get(
                         "quick_replies", []
                     )
+                    # Mirror graph state into session_state so the
+                    # floating inspector reflects reality on the next
+                    # rerun. respond_node resets captured → browsing,
+                    # so we record the snapshot PRE-reset by reading
+                    # last_capture (set by capture_node).
+                    st.session_state.phase = new_state.get("phase", "browsing")
+                    st.session_state.intent = new_state.get("intent", "other")
+                    st.session_state.slots = dict(
+                        new_state.get("lead_slots")
+                        or {"name": None, "email": None, "platform": None}
+                    )
+                    capture = new_state.get("last_capture")
+                    if (
+                        capture
+                        and capture.get("ts") != st.session_state.last_capture_ts
+                    ):
+                        st.session_state.captured_leads.append(capture)
+                        st.session_state.last_capture_ts = capture.get("ts")
                 except Exception as exc:  # noqa: BLE001
                     reply = (
                         "Sorry — something broke on my end. Try again in a "
