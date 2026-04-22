@@ -252,6 +252,13 @@ def _render_inspector(
     if not leads_rows:
         leads_rows = '<div class="as-lead-empty">no captures yet this session</div>'
 
+    # NOTE: we use st.markdown(unsafe_allow_html=True) instead of st.html
+    # because st.html sandboxes into an isolated iframe on recent
+    # Streamlit versions — position: fixed inside that iframe positions
+    # relative to the iframe, not the page, so the panel was invisible.
+    # st.markdown injects directly into the main document. Our selectors
+    # use #as-inspector IDs, so markdown's [data-testid=...] parsing
+    # bug doesn't apply here.
     html = f"""
 <div id="as-inspector" class="as-inspector">
   <button id="as-toggle" class="as-toggle" onclick="
@@ -380,7 +387,7 @@ def _render_inspector(
   }}
 </style>
 """
-    st.html(html)
+    st.markdown(html, unsafe_allow_html=True)
 
 
 def _esc(val) -> str:
