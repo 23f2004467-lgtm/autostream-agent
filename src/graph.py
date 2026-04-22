@@ -402,16 +402,24 @@ def respond_node(state: AgentState) -> dict:
         if slots.get("name") is None or slots.get("email") is None:
             quick_replies = []
 
-    # Fallback: if the LLM produced nothing and the state is one where
-    # chips should show, substitute a deterministic default per §2.4.
+    # Fallback: deterministic chips ONLY where they always make sense
+    # regardless of what the LLM asked. Specifically: platform chips
+    # during qualifying, and yes/fix chips during confirming. Generic
+    # "Tell me about pricing" chips are intentionally NOT used as a
+    # fallback anymore — they override whatever question the LLM just
+    # asked and make the buttons feel disconnected from the reply.
     if not quick_replies:
-        default = _default_quick_replies(phase, intent, slots)
-        # Respect the name/email free-text-only rule above.
-        if default and not (
+        if phase == "confirming":
+            quick_replies = _DEFAULT_REPLIES["confirming"]
+        elif phase == "captured":
+            quick_replies = _DEFAULT_REPLIES["captured"]
+        elif (
             phase == "qualifying"
-            and (slots.get("name") is None or slots.get("email") is None)
+            and slots.get("name") is not None
+            and slots.get("email") is not None
+            and slots.get("platform") is None
         ):
-            quick_replies = default
+            quick_replies = _DEFAULT_REPLIES["qualifying.platform"]
 
     updates: dict = {
         "messages": [AIMessage(content=reply.reply_text)],
