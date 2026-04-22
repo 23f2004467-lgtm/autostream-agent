@@ -435,17 +435,17 @@ def respond_node(state: AgentState) -> dict:
 # ---------- Routing ----------
 
 def after_classify(state: AgentState) -> str:
-    phase = state.get("phase", "browsing")
-    intent = state.get("intent", "other")
-    if phase in ("qualifying", "confirming"):
-        return "extract_lead"
-    # Greetings often carry a name ("Hi, I'm Alexandria...") so we extract
-    # on greeting too. Without this, later turns can't recall the name.
-    if intent in ("high_intent", "greeting"):
-        return "extract_lead"
-    if intent == "product_inquiry":
-        return "retrieve"
-    return "respond"
+    """Always route through extract_lead first.
+
+    It's a cheap safety pass that catches names/emails/platforms the
+    user may slip into any message ("im dheeraj i do on youtube" was
+    classified as 'other' and previously bypassed extraction, leaving
+    the slots empty in the inspector even after the user had clearly
+    identified themselves). Extraction overwrites nothing when there's
+    nothing to find, so running it on every turn is safe. The next
+    router (after_extract) handles retrieval / capture / respond.
+    """
+    return "extract_lead"
 
 
 def _should_capture(state: AgentState) -> bool:

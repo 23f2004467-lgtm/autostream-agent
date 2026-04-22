@@ -115,7 +115,13 @@ h1, [data-testid="stHeading"] h1 {
 }
 [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
   flex-direction: row-reverse !important;
-  justify-content: flex-end !important;
+  /* In row-reverse, flex-start is the RIGHT edge (main-axis reverses).
+     flex-end would push content to the LEFT — which is why the bubble
+     was sitting in the middle before. */
+  justify-content: flex-start !important;
+}
+[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) [data-testid="stChatMessageContent"] {
+  margin-left: auto !important;
 }
 [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) [data-testid="stChatMessageContent"] {
   background: var(--accent) !important;
