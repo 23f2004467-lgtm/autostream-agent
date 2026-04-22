@@ -75,13 +75,6 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"], .main {
 [data-testid="stBottom"] > div,
 footer { background: var(--bg) !important; }
 
-/* Leave room for the floating inspector panel (top-right, 260px wide). */
-@media (min-width: 1100px) {
-  [data-testid="stMain"] .block-container {
-    max-width: calc(100% - 320px) !important;
-    margin-right: 300px !important;
-  }
-}
 
 ::selection { background: var(--accent); color: var(--bg); }
 
@@ -217,73 +210,55 @@ h1, [data-testid="stHeading"] h1 {
   display: inline-block;
 }
 
-/* ===== Floating inspector panel (uses <details>/<summary> so the
-   open/collapse toggle is native HTML, no onclick required — which
-   Streamlit's markdown sanitizer would strip). ===== */
-#as-inspector {
-  position: fixed;
-  top: 72px;
-  right: 24px;
-  width: 260px;
-  z-index: 9999;
-  background: #141414;
-  border: 1px solid #262626;
-  border-radius: 4px;
-  box-shadow: 0 24px 60px rgba(0,0,0,.5);
-  font-family: "JetBrains Mono", ui-monospace, monospace;
-  color: #F5F1EA;
+/* ===== Sidebar inspector panel ===== */
+[data-testid="stSidebar"] {
+  background: #141414 !important;
+  border-right: 1px solid #262626 !important;
 }
-#as-inspector > summary {
-  list-style: none;
-  cursor: pointer;
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] {
+  font-family: "JetBrains Mono", ui-monospace, monospace !important;
+  color: #F5F1EA !important;
+}
+.sb-header {
   background: linear-gradient(180deg, #FF5A1F, #E04714);
   color: #0A0A0A;
   padding: 10px 14px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-family: inherit;
+  margin: -1rem -1rem 12px -1rem;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.14em;
-  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
-#as-inspector > summary::-webkit-details-marker { display: none; }
-#as-inspector > summary::marker { content: ''; }
-#as-inspector .as-arrow::before { content: '\25BE'; font-size: 10px; }
-#as-inspector:not([open]) .as-arrow::before { content: '\25B8'; }
-#as-inspector .as-pulse {
+.sb-pulse {
   width: 6px; height: 6px; border-radius: 50%;
   background: #0A0A0A;
   box-shadow: 0 0 0 3px rgba(10,10,10,.2);
-  animation: as-pulse 2s ease-in-out infinite;
+  animation: sb-pulse 2s ease-in-out infinite;
 }
-@keyframes as-pulse {
+@keyframes sb-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: .4; }
 }
-#as-inspector .as-title { flex: 1; text-align: left; }
-#as-inspector .as-count { font-weight: 500; opacity: .8; letter-spacing: 0.06em; }
-#as-inspector .as-arrow { margin-left: 4px; display: inline-flex; }
-#as-inspector .as-body {
-  padding: 14px 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+.sb-count { font-weight: 500; opacity: .85; letter-spacing: 0.06em; }
+.sb-section {
+  font-size: 9px; letter-spacing: 0.16em; color: #6B6660;
+  margin-top: 14px; margin-bottom: 6px;
+  text-transform: uppercase;
+  font-family: "JetBrains Mono", monospace;
 }
-#as-inspector .as-section-label {
-  font-size: 9px; letter-spacing: 0.16em; color: #6B6660; margin-bottom: 6px;
-}
-#as-inspector .as-phase-pill {
+.sb-phase-pill {
   display: inline-block;
   padding: 4px 10px;
   background: rgba(255,90,31,.12);
   color: #FF5A1F;
   border: 1px solid #FF5A1F;
   font-size: 11px; letter-spacing: 0.14em; font-weight: 600;
+  font-family: "JetBrains Mono", monospace;
 }
-#as-inspector .as-intent { font-size: 12px; color: #F5F1EA; }
-#as-inspector .as-slot {
+.sb-intent { font-size: 12px; color: #F5F1EA; font-family: "JetBrains Mono", monospace; }
+.sb-slot {
   display: flex; justify-content: space-between; align-items: center;
   padding: 5px 8px;
   border: 1px solid #262626;
@@ -291,31 +266,24 @@ h1, [data-testid="stHeading"] h1 {
   font-size: 10px;
   margin-top: 3px;
   color: #6B6660;
+  font-family: "JetBrains Mono", monospace;
+  letter-spacing: 0.04em;
 }
-#as-inspector .as-slot.on { border-color: #FF5A1F; color: #FF5A1F; }
-#as-inspector .as-slot-label { letter-spacing: 0.12em; }
-#as-inspector .as-slot-value {
-  max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  text-align: right;
+.sb-slot.on { border-color: #FF5A1F; color: #FF5A1F; }
+.sb-empty {
+  padding: 8px; color: #6B6660; font-size: 10px; font-style: italic;
+  border: 1px dashed #262626; text-align: center;
 }
-#as-inspector .as-leads { display: flex; flex-direction: column; gap: 4px; }
-#as-inspector .as-lead-row {
+.sb-lead {
   display: flex; gap: 8px; align-items: baseline;
   padding: 5px 8px; background: #0A0A0A; border: 1px solid #262626;
   font-size: 10px;
+  margin-top: 3px;
+  font-family: "JetBrains Mono", monospace;
 }
-#as-inspector .as-lead-idx { color: #FF5A1F; font-weight: 600; letter-spacing: 0.1em; }
-#as-inspector .as-lead-name { color: #F5F1EA; flex: 1; }
-#as-inspector .as-lead-plat { color: #6B6660; letter-spacing: 0.08em; font-size: 9px; }
-#as-inspector .as-lead-empty {
-  padding: 8px; color: #6B6660; font-size: 10px; font-style: italic;
-  border: 1px dashed #262626;
-}
-@media (max-width: 900px) {
-  #as-inspector {
-    top: auto; bottom: 90px; right: 12px; width: 220px;
-  }
-}
+.sb-lead-idx { color: #FF5A1F; font-weight: 600; letter-spacing: 0.1em; }
+.sb-lead-name { color: #F5F1EA; flex: 1; }
+.sb-lead-plat { color: #6B6660; letter-spacing: 0.08em; font-size: 9px; }
 </style>
 """
 
@@ -335,60 +303,63 @@ def _render_inspector(
     slots: dict,
     captured_leads: list[dict],
 ) -> None:
-    """Floating, collapsible state inspector — top-right corner.
+    """Inspector panel in the Streamlit sidebar.
 
-    Shows current phase, detected intent, the three lead slots with
-    fill state, and a running list of leads captured this session.
-    Toggle is pure JS (no Streamlit rerun), so collapsing doesn't
-    trigger a graph invocation.
+    Sidebar is native, reliably collapsible (the `>>` arrow), and
+    doesn't fight Streamlit's CSS injection. We use plain Streamlit
+    primitives for the content and lean the theme's global CSS rules
+    (via [data-testid]) to style the typography.
     """
-    slot_row = lambda label, value: (  # noqa: E731
-        f'<div class="as-slot {"on" if value else ""}">'
-        f'<span class="as-slot-label">{label}</span>'
-        f'<span class="as-slot-value">{_esc(value) if value else "—"}</span>'
-        "</div>"
+    leads_label = (
+        f"{len(captured_leads)} " + ("LEAD" if len(captured_leads) == 1 else "LEADS")
     )
-    leads_rows = ""
-    for i, lead in enumerate(reversed(captured_leads[-5:])):
-        leads_rows += (
-            '<div class="as-lead-row">'
-            f'<span class="as-lead-idx">{len(captured_leads) - i:02d}</span>'
-            f'<span class="as-lead-name">{_esc(lead.get("name", ""))}</span>'
-            f'<span class="as-lead-plat">{_esc(lead.get("platform", ""))}</span>'
-            "</div>"
+    with st.sidebar:
+        st.markdown(
+            f'<div class="sb-header"><span class="sb-pulse"></span>'
+            f'INSPECTOR <span class="sb-count">· {leads_label}</span></div>',
+            unsafe_allow_html=True,
         )
-    if not leads_rows:
-        leads_rows = '<div class="as-lead-empty">no captures yet this session</div>'
+        st.markdown('<div class="sb-section">PHASE</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="sb-phase-pill">{phase.upper()}</div>',
+            unsafe_allow_html=True,
+        )
 
-    # Use <details>/<summary> for the toggle — native HTML, no JS
-    # needed. Streamlit's markdown sanitizer would strip an onclick
-    # handler. CSS (in the one-time theme block) handles the arrow
-    # flip based on the [open] attribute.
-    leads_label = f"{len(captured_leads)} " + ("lead" if len(captured_leads) == 1 else "leads")
-    html = (
-        '<details id="as-inspector" open>'
-        '<summary>'
-        '<span class="as-pulse"></span>'
-        '<span class="as-title">INSPECTOR</span>'
-        f'<span class="as-count">{leads_label}</span>'
-        '<span class="as-arrow"></span>'
-        '</summary>'
-        '<div class="as-body">'
-        '<div><div class="as-section-label">PHASE</div>'
-        f'<div class="as-phase-pill">{phase.upper()}</div></div>'
-        '<div><div class="as-section-label">LAST INTENT</div>'
-        f'<div class="as-intent">{_esc(intent)}</div></div>'
-        '<div><div class="as-section-label">SLOTS</div>'
-        + slot_row("NAME", slots.get("name"))
-        + slot_row("EMAIL", slots.get("email"))
-        + slot_row("PLATFORM", slots.get("platform"))
-        + '</div>'
-        f'<div><div class="as-section-label">CAPTURED LEADS &middot; {len(captured_leads)}</div>'
-        f'<div class="as-leads">{leads_rows}</div></div>'
-        '</div>'
-        '</details>'
-    )
-    st.markdown(html, unsafe_allow_html=True)
+        st.markdown('<div class="sb-section">LAST INTENT</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="sb-intent">{_esc(intent)}</div>',
+            unsafe_allow_html=True,
+        )
+
+        st.markdown('<div class="sb-section">SLOTS</div>', unsafe_allow_html=True)
+        for label in ("name", "email", "platform"):
+            v = slots.get(label)
+            on = "on" if v else ""
+            st.markdown(
+                f'<div class="sb-slot {on}"><span>{label.upper()}</span>'
+                f'<span>{_esc(v) if v else "—"}</span></div>',
+                unsafe_allow_html=True,
+            )
+
+        st.markdown(
+            f'<div class="sb-section">CAPTURED LEADS · {len(captured_leads)}</div>',
+            unsafe_allow_html=True,
+        )
+        if not captured_leads:
+            st.markdown(
+                '<div class="sb-empty">no captures yet this session</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            for i, lead in enumerate(reversed(captured_leads[-5:])):
+                idx = len(captured_leads) - i
+                st.markdown(
+                    f'<div class="sb-lead"><span class="sb-lead-idx">{idx:02d}</span>'
+                    f'<span class="sb-lead-name">{_esc(lead.get("name", ""))}</span>'
+                    f'<span class="sb-lead-plat">{_esc(lead.get("platform", ""))}</span>'
+                    '</div>',
+                    unsafe_allow_html=True,
+                )
 
 
 def _esc(val) -> str:
