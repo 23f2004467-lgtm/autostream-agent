@@ -90,16 +90,23 @@ h1, [data-testid="stHeading"] h1 {
   background: transparent !important;
   padding: 6px 0 !important;
   border: none !important;
+  gap: 10px !important;
 }
 [data-testid="stChatMessageContent"] {
   background: var(--bg-elev) !important;
   border: 1px solid var(--line) !important;
   color: var(--fg) !important;
   border-radius: 4px 14px 14px 14px !important;
-  padding: 10px 14px !important;
+  padding: 11px 16px !important;
   font-family: var(--font-body) !important;
-  font-size: 14px !important;
-  line-height: 1.5 !important;
+  font-size: 15px !important;
+  line-height: 1.55 !important;
+  letter-spacing: -0.005em !important;
+  max-width: 78% !important;
+  flex-grow: 0 !important;
+}
+[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
+  flex-direction: row-reverse !important;
 }
 [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) [data-testid="stChatMessageContent"] {
   background: var(--accent) !important;

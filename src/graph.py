@@ -67,13 +67,53 @@ _PLATFORM_PATTERNS: list[tuple[re.Pattern, str]] = [
 # Fallback for name extraction when the LLM returns None. The 8B model
 # occasionally ships malformed tool-calls on first-person sentences.
 # These patterns catch the most common phrasings.
-_NAME_PATTERNS = [
-    re.compile(
-        r"(?:call\s+me|i'?m\s+called|my\s+name\s+is|this\s+is|i\s+am|i'?m)\s*[,:\-]?\s*"
-        r"([A-Za-z][A-Za-z'\-]{1,24})",
-        re.IGNORECASE,
-    ),
-]
+_NAME_PREFIX_PATTERN = re.compile(
+    r"(?:call\s+me|i'?m\s+called|my\s+name\s+is|this\s+is|i\s+am|i'?m)\s*[,:\-]?\s*"
+    r"([A-Za-z][A-Za-z'\-]{1,24})",
+    re.IGNORECASE,
+)
+# Bare name pattern: 1-2 capitalized/lowercase alphabetic words, used only
+# when phase=qualifying and name slot is still None (i.e., we JUST asked).
+_BARE_NAME_PATTERN = re.compile(r"^\s*([A-Za-z][A-Za-z'\-]{1,24}(?:\s+[A-Za-z][A-Za-z'\-]{1,24})?)\s*[.!]?\s*$")
+
+_NAME_FILLERS = {
+    "a", "an", "the", "on", "at", "for", "with", "just", "and", "or",
+    "going", "planning", "trying", "sure", "ok", "okay", "yes", "yeah",
+    "yep", "yup", "no", "nope", "hi", "hello", "hey", "thanks", "thank",
+    "good", "great", "cool", "nice", "basic", "pro", "youtube", "tiktok",
+    "instagram", "twitch", "twitter", "submit", "confirm", "done",
+    "ready", "sign", "up", "here", "there", "now", "later",
+}
+
+
+def _extract_name_from_message(msg: str, *, phase: str) -> str | None:
+    """Pull a name from the user's message, returning None if unsure.
+
+    First tries explicit prefixes ("I'm X", "call me X"). If the user is
+    in qualifying phase AND the message is just 1-2 alpha words (a bare
+    "Dheeraj" reply to "what should I call you?"), accept that too. We
+    skip common non-name fillers so "yes" or "basic" aren't stored as
+    names.
+    """
+    m = _NAME_PREFIX_PATTERN.search(msg)
+    if m:
+        candidate = m.group(1).strip(" ,.!")
+    elif phase == "qualifying":
+        bare = _BARE_NAME_PATTERN.match(msg)
+        if not bare:
+            return None
+        candidate = bare.group(1).strip()
+    else:
+        return None
+
+    first_word = candidate.split()[0].lower()
+    if first_word in _NAME_FILLERS:
+        return None
+    # Title-case if the user typed all upper ("DHEERAJ") or all lower
+    # ("dheeraj"). Keep mixed case ("Jainam Desai") as-is.
+    if candidate.isupper() or candidate.islower():
+        candidate = candidate.title()
+    return candidate
 
 # Deterministic fallbacks for quick-reply chips. The responder LLM
 # usually generates its own, but it occasionally returns an empty list
@@ -229,22 +269,9 @@ def extract_lead_node(state: AgentState) -> dict:
                 extracted = extracted.model_copy(update={"platform": canonical})
                 break
     if extracted.name is None:
-        for pattern in _NAME_PATTERNS:
-            m = pattern.search(msg)
-            if not m:
-                continue
-            candidate = m.group(1).strip(" ,.!")
-            # Skip obvious non-names (sentence fillers).
-            if candidate.lower() in {
-                "a", "an", "the", "on", "at", "for", "with", "just",
-                "going", "planning", "trying", "sure", "ok",
-            }:
-                continue
-            # Normalize ALL-CAPS names to Title case: "DHEERAJ" -> "Dheeraj".
-            if candidate.isupper() and len(candidate) > 1:
-                candidate = candidate.title()
+        candidate = _extract_name_from_message(msg, phase=current_phase)
+        if candidate:
             extracted = extracted.model_copy(update={"name": candidate})
-            break
 
     if intent == "correction":
         any_overwrite = False
