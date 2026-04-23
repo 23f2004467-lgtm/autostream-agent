@@ -159,6 +159,30 @@ _DEFAULT_REPLIES: dict[str, list[str]] = {
 }
 
 
+# Phrases the LLM frequently falls back to even when they don't answer
+# the question it just asked. When the reply ends in "?" and every chip
+# is from this set, we blank them out so the UI shows no chips rather
+# than disconnected ones.
+_GENERIC_CHIP_PHRASES: set[str] = {
+    "tell me about pricing",
+    "tell me more",
+    "compare plans",
+    "i want to sign up",
+    "sign me up",
+    "sign up",
+    "pricing",
+    "plans",
+    "i'll sign up anyway",
+    "go pro",
+    "go with pro",
+    "tell me about pro",
+    "tell me about basic",
+    "what about refunds?",
+    "ask another question",
+    "talk to sales",
+}
+
+
 def _default_quick_replies(phase: Phase, intent: Intent, slots: dict) -> list[str]:
     """Pick a sensible chip set when the LLM didn't supply one."""
     if phase == "qualifying":
@@ -400,6 +424,17 @@ def respond_node(state: AgentState) -> dict:
     quick_replies = list(reply.quick_replies or [])
     if phase == "qualifying":
         if slots.get("name") is None or slots.get("email") is None:
+            quick_replies = []
+
+    # Post-hoc filter: Llama 8B doesn't always respect the prompt rule
+    # "chips must answer the question you just asked". If the reply ends
+    # in a question mark AND the chips are all from the generic
+    # top-funnel set (pricing, plans, sign up...), drop them — an empty
+    # chip row is better than chips that feel disconnected from the
+    # question the agent just asked.
+    if quick_replies and reply.reply_text.rstrip().endswith("?"):
+        lowered = {c.lower().strip() for c in quick_replies}
+        if lowered.issubset(_GENERIC_CHIP_PHRASES):
             quick_replies = []
 
     # Fallback: deterministic chips ONLY where they always make sense
