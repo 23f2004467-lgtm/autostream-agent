@@ -99,8 +99,11 @@
   }
   .stat:last-child { border-right: none; padding-right: 0; }
   .stat .num {
-    font-family: var(--font-display); font-weight: 600;
+    /* Switched from Space Grotesk (whose "1" glyph reads as "/" at
+       this size) to Inter for unambiguous digit shapes. */
+    font-family: var(--font-body); font-weight: 700;
     font-size: 44px; letter-spacing: -0.03em; color: var(--fg);
+    font-variant-numeric: tabular-nums;
     line-height: 1;
   }
   .stat .num sup { color: var(--accent); font-size: .6em; margin-left: 4px; }
