@@ -39,11 +39,13 @@ from src.config import LLM_MODEL
 
 logger = logging.getLogger(__name__)
 
-# Interactive default of 1s/call — snappy for a demo session where a
-# human types every ~10s. Tests set LLM_MIN_INTERVAL=3.0 via conftest
-# because 14 back-to-back cases flirt with Groq's 30 RPM ceiling.
-# Override via env var (set to "0" on paid tiers).
-_RATE_LIMIT_SEC = float(os.getenv("LLM_MIN_INTERVAL", "1.0"))
+# Interactive default dropped to 0.3s/call. With 3 LLM calls per turn
+# (classify + extract + respond, optionally + retrieve), a 1s throttle
+# was adding 3s+ to every turn and pushing demos past 2 min. Groq's
+# 30 RPM limit = 2s/call in steady state, but humans pause between
+# turns so a 0.3s floor keeps the UI responsive without risking a
+# sustained overshoot. Tests pin 3.0s via conftest for rate safety.
+_RATE_LIMIT_SEC = float(os.getenv("LLM_MIN_INTERVAL", "0.3"))
 _last_call_ts = 0.0
 _rate_lock = threading.Lock()
 _MAX_429_RETRIES = 4

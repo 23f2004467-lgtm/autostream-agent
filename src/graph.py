@@ -352,16 +352,21 @@ def capture_node(state: AgentState) -> dict:
     slots = _slots_with_defaults(state)
     msg = _last_user_text(state.get("messages", []))
 
-    # "no, fix this" without an explicit value → drop back to qualifying
-    # so respond can ask what they want to fix. Correction-with-value is
-    # already handled by extract_lead (it overwrites and leaves phase
-    # in confirming so respond re-confirms with the new values).
-    if intent == "other" and FIX_RE.search(msg):
+    # Explicit regex signals take priority over intent classification.
+    # Llama 8B sometimes mislabels "yes, submit" as correction (because
+    # "submit" shares lexical root with "correct"), which would
+    # otherwise trap the user in a confirmation loop.
+    explicit_yes = bool(YES_RE.search(msg)) and not FIX_RE.search(msg)
+    explicit_fix = bool(FIX_RE.search(msg)) and not YES_RE.search(msg)
+
+    # "no, fix this" without a new value → drop back to qualifying so
+    # respond can ask what to fix. Intent=correction WITH a new value
+    # is handled by extract_lead (it overwrites and leaves phase in
+    # confirming so respond re-confirms with the new values).
+    if explicit_fix or (intent == "correction" and not explicit_yes):
         return {"phase": "qualifying"}
 
-    confirms = intent == "high_intent" or (
-        intent == "other" and YES_RE.search(msg)
-    )
+    confirms = explicit_yes or intent == "high_intent"
     if confirms and all(slots.get(k) for k in ("name", "email", "platform")) \
             and is_valid_email(slots.get("email")):
         mock_lead_capture(slots["name"], slots["email"], slots["platform"])
