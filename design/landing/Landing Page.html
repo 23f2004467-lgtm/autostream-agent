@@ -92,12 +92,21 @@
     display: grid; grid-template-columns: repeat(4, 1fr);
     gap: 0; margin-top: 100px;
     border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
   }
   .stat {
-    padding: 28px 24px 28px 0;
-    border-right: 1px solid var(--line);
+    padding: 28px 24px;
+    position: relative;
   }
-  .stat:last-child { border-right: none; padding-right: 0; }
+  /* Pseudo-element dividers — absolutely positioned so they bind
+     cleanly to the parent's top/bottom borders at any DPI. */
+  .stat + .stat::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 1px;
+    background: var(--line);
+  }
   .stat .num {
     /* Switched from Space Grotesk (whose "1" glyph reads as "/" at
        this size) to Inter for unambiguous digit shapes. */
