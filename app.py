@@ -93,68 +93,68 @@ h1, [data-testid="stHeading"] h1 {
   letter-spacing: 0.02em !important;
 }
 
-/* Chat messages — user orange bubble, assistant dark card */
-[data-testid="stChatMessage"] {
-  background: transparent !important;
-  padding: 6px 0 !important;
-  border: none !important;
-  /* Force flex layout — Streamlit sometimes uses grid/block which
-     makes our flex-direction + justify rules no-ops. */
+/* ===== Custom chat bubbles (we render our own HTML instead of
+   st.chat_message to avoid fighting Streamlit's chat-message internals
+   which have changed selectors across versions). ===== */
+.cb-row {
   display: flex !important;
-  align-items: flex-start !important;
-  gap: 10px !important;
-  width: 100% !important;
-  max-width: 100% !important;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 6px 0;
+  width: 100%;
 }
-[data-testid="stChatMessageContent"] {
-  background: var(--bg-elev) !important;
-  border: 1px solid var(--line) !important;
-  color: var(--fg) !important;
-  border-radius: 4px 14px 14px 14px !important;
-  padding: 11px 16px !important;
-  font-family: var(--font-body) !important;
-  font-size: 15px !important;
-  line-height: 1.55 !important;
-  letter-spacing: -0.005em !important;
-  max-width: 78% !important;
-  flex-grow: 0 !important;
-  flex-shrink: 1 !important;
+.cb-row.assistant { justify-content: flex-start; }
+.cb-row.user { flex-direction: row-reverse; justify-content: flex-start; }
+.cb-avatar {
+  width: 32px; height: 32px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px; font-weight: 600;
 }
-/* Assistant: pin to the left with auto-margin on the right */
-[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"]) [data-testid="stChatMessageContent"] {
-  margin-right: auto !important;
+.cb-avatar.assistant {
+  background: var(--accent);
+  border-radius: 4px;
+  color: var(--accent-ink);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 4px 14px rgba(255,90,31,.35);
 }
-/* User: reverse the row so the avatar goes right, then use auto-margin
-   on the LEFT to push the content to the right edge. */
-[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
-  flex-direction: row-reverse !important;
+.cb-avatar.user {
+  background: linear-gradient(140deg, #3a3a3a, #1a1a1a);
+  border: 1px solid #333;
+  border-radius: 50%;
+  color: var(--fg-dim);
 }
-[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) [data-testid="stChatMessageContent"] {
-  margin-left: auto !important;
-  background: var(--accent) !important;
-  color: var(--accent-ink) !important;
-  border-color: var(--accent) !important;
-  border-radius: 14px 4px 14px 14px !important;
-  font-weight: 500 !important;
+.cb-bubble {
+  max-width: 78%;
+  padding: 11px 16px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  letter-spacing: -0.005em;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
 }
-[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) [data-testid="stChatMessageContent"] * {
-  color: var(--accent-ink) !important;
+.cb-bubble.assistant {
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  color: var(--fg);
+  border-radius: 4px 14px 14px 14px;
 }
-[data-testid="stChatMessageAvatarAssistant"] {
-  background: var(--accent) !important;
-  border-radius: 4px !important;
-  box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 4px 14px rgba(255,90,31,.35) !important;
+.cb-bubble.user {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border: 1px solid var(--accent);
+  border-radius: 14px 4px 14px 14px;
+  font-weight: 500;
 }
-[data-testid="stChatMessageAvatarAssistant"] svg {
-  fill: var(--accent-ink) !important;
-  color: var(--accent-ink) !important;
+.cb-thinking { display: inline-flex; gap: 4px; padding: 4px 0; }
+.cb-thinking i {
+  width: 5px; height: 5px; border-radius: 3px;
+  background: var(--accent);
+  display: inline-block;
 }
-[data-testid="stChatMessageAvatarUser"] {
-  background: linear-gradient(140deg, #3a3a3a, #1a1a1a) !important;
-  border: 1px solid #333 !important;
-  color: var(--fg-dim) !important;
-  font-family: var(--font-mono) !important;
-}
+.cb-thinking i:nth-child(2) { opacity: .6; }
+.cb-thinking i:nth-child(3) { opacity: .3; }
 
 /* Quick-reply chips — ghost buttons w/ orange outline */
 [data-testid="stBaseButton-secondary"] {
@@ -310,6 +310,34 @@ def _escape_dollar(text: str) -> str:
     return text.replace("$", r"\$")
 
 
+def _render_bubble(role: str, text: str) -> None:
+    """Render a single chat bubble using our own HTML structure.
+
+    Sidesteps st.chat_message's shifting internal test-ids / parent
+    layout so alignment (user right, assistant left) always works.
+    """
+    import html as _h
+    safe = _h.escape(text).replace("\n", "<br>")
+    initial = "J" if role == "user" else ""
+    # Orange camera icon for the assistant, letter mark for the user.
+    if role == "assistant":
+        avatar_inner = (
+            '<svg width="16" height="16" viewBox="0 0 20 20" fill="none">'
+            '<rect x="3" y="6" width="10" height="8" rx="1" fill="#0A0A0A"/>'
+            '<path d="M13 9 L17 6 V14 L13 11 Z" fill="#0A0A0A"/>'
+            '</svg>'
+        )
+    else:
+        avatar_inner = initial or ""
+    st.markdown(
+        f'<div class="cb-row {role}">'
+        f'<div class="cb-avatar {role}">{avatar_inner}</div>'
+        f'<div class="cb-bubble {role}">{safe}</div>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+
 def _render_inspector(
     phase: str,
     intent: str,
@@ -450,11 +478,9 @@ def main() -> None:
         "Chips under each reply are shortcuts — typing any free text works the same way."
     )
 
-    # Render chat history. Escape "$" so "$29/month" doesn't hit the
-    # Streamlit MathJax renderer and turn into a LaTeX fraction.
+    # Render chat history as custom bubbles (see _render_bubble).
     for m in st.session_state.messages:
-        with st.chat_message(m["role"]):
-            st.markdown(_escape_dollar(m["content"]))
+        _render_bubble(m["role"], m["content"])
 
     # Quick-reply chips under the last assistant message
     if (
@@ -489,44 +515,39 @@ def main() -> None:
         user_text = st.session_state.pending_input
         st.session_state.pending_input = None
         st.session_state.messages.append({"role": "user", "content": user_text})
-        with st.chat_message("user"):
-            st.markdown(user_text)
-        with st.chat_message("assistant"):
-            with st.status("Thinking…", expanded=False):
-                try:
-                    new_state = _run_turn(user_text)
-                    reply = new_state["messages"][-1].content
-                    st.session_state.quick_replies = new_state.get(
-                        "quick_replies", []
-                    )
-                    # Mirror graph state into session_state so the
-                    # floating inspector reflects reality on the next
-                    # rerun. respond_node resets captured → browsing,
-                    # so we record the snapshot PRE-reset by reading
-                    # last_capture (set by capture_node).
-                    st.session_state.phase = new_state.get("phase", "browsing")
-                    st.session_state.intent = new_state.get("intent", "other")
-                    st.session_state.slots = dict(
-                        new_state.get("lead_slots")
-                        or {"name": None, "email": None, "platform": None}
-                    )
-                    capture = new_state.get("last_capture")
-                    if (
-                        capture
-                        and capture.get("ts") != st.session_state.last_capture_ts
-                    ):
-                        st.session_state.captured_leads.append(capture)
-                        st.session_state.last_capture_ts = capture.get("ts")
-                except Exception as exc:  # noqa: BLE001
-                    reply = (
-                        "Sorry — something broke on my end. Try again in a "
-                        f"moment. ({type(exc).__name__})"
-                    )
-                    st.session_state.quick_replies = []
-            st.markdown(_escape_dollar(reply))
-            st.session_state.messages.append(
-                {"role": "assistant", "content": reply}
-            )
+        _render_bubble("user", user_text)
+        with st.spinner("Thinking…"):
+            try:
+                new_state = _run_turn(user_text)
+                reply = new_state["messages"][-1].content
+                st.session_state.quick_replies = new_state.get(
+                    "quick_replies", []
+                )
+                # Mirror graph state into session_state so the floating
+                # inspector reflects reality on the next rerun.
+                st.session_state.phase = new_state.get("phase", "browsing")
+                st.session_state.intent = new_state.get("intent", "other")
+                st.session_state.slots = dict(
+                    new_state.get("lead_slots")
+                    or {"name": None, "email": None, "platform": None}
+                )
+                capture = new_state.get("last_capture")
+                if (
+                    capture
+                    and capture.get("ts") != st.session_state.last_capture_ts
+                ):
+                    st.session_state.captured_leads.append(capture)
+                    st.session_state.last_capture_ts = capture.get("ts")
+            except Exception as exc:  # noqa: BLE001
+                reply = (
+                    "Sorry — something broke on my end. Try again in a "
+                    f"moment. ({type(exc).__name__})"
+                )
+                st.session_state.quick_replies = []
+        _render_bubble("assistant", reply)
+        st.session_state.messages.append(
+            {"role": "assistant", "content": reply}
+        )
         st.session_state.processing = False
         st.rerun()
 
