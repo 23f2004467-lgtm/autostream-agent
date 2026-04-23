@@ -98,7 +98,13 @@ h1, [data-testid="stHeading"] h1 {
   background: transparent !important;
   padding: 6px 0 !important;
   border: none !important;
+  /* Force flex layout — Streamlit sometimes uses grid/block which
+     makes our flex-direction + justify rules no-ops. */
+  display: flex !important;
+  align-items: flex-start !important;
   gap: 10px !important;
+  width: 100% !important;
+  max-width: 100% !important;
 }
 [data-testid="stChatMessageContent"] {
   background: var(--bg-elev) !important;
@@ -112,18 +118,19 @@ h1, [data-testid="stHeading"] h1 {
   letter-spacing: -0.005em !important;
   max-width: 78% !important;
   flex-grow: 0 !important;
+  flex-shrink: 1 !important;
 }
+/* Assistant: pin to the left with auto-margin on the right */
+[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"]) [data-testid="stChatMessageContent"] {
+  margin-right: auto !important;
+}
+/* User: reverse the row so the avatar goes right, then use auto-margin
+   on the LEFT to push the content to the right edge. */
 [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
   flex-direction: row-reverse !important;
-  /* In row-reverse, flex-start is the RIGHT edge (main-axis reverses).
-     flex-end would push content to the LEFT — which is why the bubble
-     was sitting in the middle before. */
-  justify-content: flex-start !important;
 }
 [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) [data-testid="stChatMessageContent"] {
   margin-left: auto !important;
-}
-[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) [data-testid="stChatMessageContent"] {
   background: var(--accent) !important;
   color: var(--accent-ink) !important;
   border-color: var(--accent) !important;
